@@ -1513,9 +1513,9 @@
 
       // Simple node locations
       const nodes = [
-        { name: "LAN", x: 20, y: height/4, col: 0 },
-        { name: "WAN", x: 20, y: height * 3/4, col: 0 },
-        { name: "ZTA", x: width/2, y: height/2, col: 1 },
+        { name: "ESP32", x: 20, y: height/4, col: 0 },
+        { name: "WSL Gateway", x: 20, y: height * 3/4, col: 0 },
+        { name: "Azure VM", x: width/2, y: height/2, col: 1 },
         { name: "ALLOW", x: width - 50, y: height/4, col: 2, color: getThemeColor('--color-status-allow') },
         { name: "BLOCK", x: width - 50, y: height * 3/4, col: 2, color: getThemeColor('--color-status-blocked') }
       ];
@@ -1596,26 +1596,26 @@
       const height = container.clientHeight;
       const svg = d3.select("#" + containerId).append("svg").attr("width", width).attr("height", height);
 
-      // 4 Columns of Nodes
-      const cols = 4;
+      // 5 Columns of Nodes
+      const cols = 5;
       const colWidth = width / (cols + 0.5);
 
       const nodes = [
-        // Column 0: Source Subnets
-        { id: 0, name: "DMZ_10.15.2.0", col: 0, y: height * 0.2 },
-        { id: 1, name: "VPN_172.16.80.0", col: 0, y: height * 0.5 },
-        { id: 2, name: "LAN_192.168.10.0", col: 0, y: height * 0.8 },
-        // Column 1: Identity/Auth Group
-        { id: 3, name: "System accounts", col: 1, y: height * 0.25 },
-        { id: 4, name: "Staff users", col: 1, y: height * 0.5 },
-        { id: 5, name: "External contractors", col: 1, y: height * 0.75 },
-        // Column 2: Requested Action
-        { id: 6, name: "REST API Read", col: 2, y: height * 0.2 },
-        { id: 7, name: "SQL DB Query", col: 2, y: height * 0.5 },
-        { id: 8, name: "RDP Console Login", col: 2, y: height * 0.8 },
-        // Column 3: ZTA Verdict
-        { id: 9, name: "APPROVED FLOWS", col: 3, y: height * 0.3, color: getThemeColor('--color-status-allow') },
-        { id: 10, name: "BLOCKED ANOMALIES", col: 3, y: height * 0.7, color: getThemeColor('--color-status-blocked') }
+        // Column 0: ESP32 Edge Nodes
+        { id: 0, name: "ESP32 Leaf (Sensor 01)", col: 0, y: height * 0.2 },
+        { id: 1, name: "ESP32 Leaf (Sensor 02)", col: 0, y: height * 0.5 },
+        { id: 2, name: "ESP32 Leaf (Control 03)", col: 0, y: height * 0.8 },
+        // Column 1: Laptop Forwarders
+        { id: 3, name: "Laptop Forwarder A (WSL)", col: 1, y: height * 0.3 },
+        { id: 4, name: "Laptop Forwarder B (WSL)", col: 1, y: height * 0.7 },
+        // Column 2: WSL Gateways (Corporate Networks)
+        { id: 5, name: "WSL Gateway (Corp Net A)", col: 2, y: height * 0.3 },
+        { id: 6, name: "WSL Gateway (Corp Net B)", col: 2, y: height * 0.7 },
+        // Column 3: Cloud Trust Engine
+        { id: 7, name: "Azure VM (Core Trust Engine)", col: 3, y: height * 0.5 },
+        // Column 4: ZTA Verdict
+        { id: 8, name: "APPROVED FLOWS", col: 4, y: height * 0.3, color: getThemeColor('--color-status-allow') },
+        { id: 9, name: "BLOCKED ANOMALIES", col: 4, y: height * 0.7, color: getThemeColor('--color-status-blocked') }
       ];
 
       // Calculate exact nodes absolute layout
@@ -1627,23 +1627,22 @@
       const flowBlockedOdds = currentDeviceState === 'block' ? 1.0 : (currentDeviceState === 'verify' ? 0.45 : (isIntrusionActive ? 0.7 : 0.12));
 
       const links = [
-        // Col 0 -> Col 1
-        { source: 0, target: 5, value: 140, blocked: Math.random() < flowBlockedOdds, srcIp: "10.15.2.14", size: "3.5 KB" },
-        { source: 1, target: 4, value: 250, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "172.16.80.44", size: "24.1 KB" },
-        { source: 2, target: 3, value: 410, blocked: currentDeviceState === 'block', srcIp: "192.168.10.8", size: "128.4 KB" },
-        { source: 2, target: 4, value: 180, blocked: currentDeviceState === 'block', srcIp: "192.168.10.155", size: "5.2 KB" },
+        // Col 0 -> Col 1 (ESP32 Leaf -> Laptop Forwarder)
+        { source: 0, target: 3, value: 240, blocked: currentDeviceState === 'block', srcIp: "192.168.1.10 (ESP32)", size: "2.4 KB" },
+        { source: 1, target: 3, value: 180, blocked: currentDeviceState === 'block', srcIp: "192.168.1.11 (ESP32)", size: "1.8 KB" },
+        { source: 2, target: 4, value: 350, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "192.168.1.20 (ESP32)", size: "32.1 KB" },
 
-        // Col 1 -> Col 2
-        { source: 3, target: 6, value: 200, blocked: currentDeviceState === 'block', srcIp: "192.168.10.8", size: "12.4 KB" },
-        { source: 4, target: 7, value: 310, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "172.16.80.44", size: "45.0 KB" },
-        { source: 5, target: 8, value: 120, blocked: Math.random() < flowBlockedOdds, srcIp: "10.15.2.14", size: "12.0 KB" },
-        { source: 4, target: 6, value: 150, blocked: currentDeviceState === 'block', srcIp: "192.168.10.155", size: "128 KB" },
+        // Col 1 -> Col 2 (Laptop Forwarder -> WSL Gateway)
+        { source: 3, target: 5, value: 420, blocked: currentDeviceState === 'block', srcIp: "10.0.2.15 (WSL)", size: "4.2 KB" },
+        { source: 4, target: 6, value: 350, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "10.0.3.15 (WSL)", size: "32.1 KB" },
 
-        // Col 2 -> Col 3
-        { source: 6, target: currentDeviceState === 'block' ? 10 : 9, value: 310, blocked: currentDeviceState === 'block', srcIp: "192.168.10.8", size: "140 KB" },
-        { source: 7, target: currentDeviceState === 'block' ? 10 : 9, value: 240, blocked: currentDeviceState === 'block', srcIp: "192.168.10.155", size: "3.5 KB" },
-        { source: 7, target: 10, value: 120, blocked: true, srcIp: "172.16.80.44", size: "24.1 KB" },
-        { source: 8, target: 10, value: 110, blocked: true, srcIp: "10.15.2.14", size: "12.0 KB" }
+        // Col 2 -> Col 3 (WSL Gateway -> Azure VM Trust Engine)
+        { source: 5, target: 7, value: 420, blocked: currentDeviceState === 'block', srcIp: "172.24.8.4", size: "128.4 KB" },
+        { source: 6, target: 7, value: 350, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "172.24.9.4", size: "32.1 KB" },
+
+        // Col 3 -> Col 4 (Azure VM -> Verdicts)
+        { source: 7, target: 8, value: currentDeviceState === 'block' ? 10 : (currentDeviceState === 'verify' ? 300 : (isIntrusionActive ? 150 : 650)), blocked: false, srcIp: "Azure VM", size: "Telemetry Payload" },
+        { source: 7, target: 9, value: currentDeviceState === 'block' ? 750 : (currentDeviceState === 'verify' ? 350 : (isIntrusionActive ? 550 : 80)), blocked: true, srcIp: "Azure VM", size: "Anomalous Traffic" }
       ];
 
       // Draw Links (Bezier paths)
