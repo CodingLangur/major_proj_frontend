@@ -247,7 +247,7 @@
           <span id="header-status-dot" class="relative inline-flex rounded-full h-1.5 w-1.5 bg-allow"></span>
         </div>
         <span class="text-xs font-mono-data font-bold tracking-wider text-muted">DEVICE STATE:</span>
-        <span id="header-status-text" class="text-xs font-mono-data font-bold tracking-wider text-allow glow-status-allow">ALLOW</span>
+        <span id="header-status-text" class="text-xs font-mono-data font-bold tracking-wider text-allow glow-status-allow">ACTIVE</span>
       </div>
     </div>
 
@@ -347,14 +347,14 @@
                 <span class="text-muted text-[10px]">DEVICE STATE POLICY</span>
                 <select id="select-device-policy" onchange="changeDevicePolicy(this.value)" class="bg-transparent border-0 text-allow font-bold mt-0.5 outline-none cursor-pointer">
                   <option value="auto" class="bg-surface text-allow" selected>AUTO (ZTA ENGINE)</option>
-                  <option value="allow" class="bg-surface text-allow">FORCE ALLOW (GREEN)</option>
+                  <option value="allow" class="bg-surface text-allow">FORCE ACTIVE (GREEN)</option>
                   <option value="verify" class="bg-surface text-verify">FORCE VERIFY (YELLOW)</option>
                   <option value="block" class="bg-surface text-blocked">FORCE BLOCK (RED)</option>
                 </select>
               </div>
               <div class="flex items-center gap-1.5 border border-bordercol/50 bg-background/80 px-2 py-1">
                 <span id="control-status-dot" class="inline-block h-2 w-2 rounded-full bg-allow glow-status-allow"></span>
-                <span id="control-status-text" class="text-[10px] font-bold text-allow font-mono-data uppercase">ALLOW</span>
+                <span id="control-status-text" class="text-[10px] font-bold text-allow font-mono-data uppercase">ACTIVE</span>
               </div>
             </div>
           </div>
@@ -462,8 +462,8 @@
       <div class="flex-grow flex gap-4 overflow-hidden h-full">
         <!-- Col 1: Network -->
         <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
-          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-net">
-            <span class="text-primary font-bold">NETWORK LOGS</span>
+          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-net">
+            <span class="text-primary font-bold leading-tight">Edge Gateway &<br>Telemetry Ingestion</span>
             <div class="flex items-center gap-1.5">
               <span class="text-muted text-[10px]" id="rate-stream-net">345 eps</span>
               <button onclick="toggleStream('network')" class="p-1 hover:text-primary transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-net"></i></button>
@@ -474,8 +474,8 @@
 
         <!-- Col 2: Auth -->
         <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
-          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-auth">
-            <span class="text-acid font-bold">AUTHENTICATION</span>
+          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-auth">
+            <span class="text-acid font-bold leading-tight">ML Anomaly<br>Detection Engine</span>
             <div class="flex items-center gap-1.5">
               <span class="text-muted text-[10px]" id="rate-stream-auth">82 eps</span>
               <button onclick="toggleStream('auth')" class="p-1 hover:text-acid transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-auth"></i></button>
@@ -486,8 +486,8 @@
 
         <!-- Col 3: App -->
         <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
-          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-app">
-            <span class="text-primary font-bold">APPLICATION</span>
+          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-app">
+            <span class="text-primary font-bold leading-tight">Dynamic Trust<br>Calibration Engine</span>
             <div class="flex items-center gap-1.5">
               <span class="text-muted text-[10px]" id="rate-stream-app">180 eps</span>
               <button onclick="toggleStream('app')" class="p-1 hover:text-primary transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-app"></i></button>
@@ -498,8 +498,8 @@
 
         <!-- Col 4: System -->
         <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
-          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-sys">
-            <span class="text-text font-bold">SYSTEM</span>
+          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-sys">
+            <span class="text-text font-bold leading-tight">Adaptive Access<br>Control Engine</span>
             <div class="flex items-center gap-1.5">
               <span class="text-muted text-[10px]" id="rate-stream-sys">415 eps</span>
               <button onclick="toggleStream('system')" class="p-1 hover:text-muted transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-sys"></i></button>
@@ -510,8 +510,8 @@
 
         <!-- Col 5: Security -->
         <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel" id="stream-panel-sec">
-          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-sec">
-            <span class="text-alert font-bold">SECURITY EVENTS</span>
+          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-sec">
+            <span class="text-alert font-bold leading-tight">SECURITY EVENTS</span>
             <div class="flex items-center gap-1.5">
               <span class="text-muted text-[10px]" id="rate-stream-sec">8 eps</span>
               <button onclick="toggleStream('security')" class="p-1 hover:text-alert transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-sec"></i></button>
@@ -725,7 +725,7 @@
       const headerDot = document.getElementById('header-status-dot');
       
       if (headerText && headerPing && headerDot) {
-        headerText.innerText = targetState.toUpperCase();
+        headerText.innerText = targetState === 'allow' ? 'ACTIVE' : targetState.toUpperCase();
         
         const classesToRemove = ['bg-allow', 'bg-verify', 'bg-blocked', 'text-allow', 'text-verify', 'text-blocked', 'glow-status-allow', 'glow-status-verify', 'glow-status-blocked'];
         headerPing.classList.remove(...classesToRemove);
@@ -755,7 +755,7 @@
       if (selectElem && controlDot && controlText) {
         selectElem.classList.remove('text-allow', 'text-verify', 'text-blocked');
         
-        controlText.innerText = targetState.toUpperCase();
+        controlText.innerText = targetState === 'allow' ? 'ACTIVE' : targetState.toUpperCase();
         
         const classesToRemove = ['bg-allow', 'bg-verify', 'bg-blocked', 'text-allow', 'text-verify', 'text-blocked', 'glow-status-allow', 'glow-status-verify', 'glow-status-blocked'];
         controlDot.classList.remove(...classesToRemove);
@@ -779,7 +779,7 @@
       // 3. Update ZTA View Panel UI
       const ztaStatusText = document.getElementById('zta-device-status');
       if (ztaStatusText) {
-        ztaStatusText.innerText = targetState.toUpperCase();
+        ztaStatusText.innerText = targetState === 'allow' ? 'ACTIVE' : targetState.toUpperCase();
         ztaStatusText.classList.remove('text-allow', 'text-verify', 'text-blocked', 'glow-status-allow', 'glow-status-verify', 'glow-status-blocked');
         
         if (targetState === 'allow') {
