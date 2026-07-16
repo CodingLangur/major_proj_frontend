@@ -1,0 +1,235 @@
+# Neural Command Dashboard
+
+## Product Overview
+
+**The Pitch:** A next-generation cybersecurity monitoring platform that fuses industrial command-center precision with organic, AI-driven 'Neural Pulse' visualizations. It transforms chaotic SIEM data into an intuitive, breathing ecosystem of trust and anomalies.
+
+**For:** Tier-3 SOC Analysts and Zero Trust Network Architects who suffer from alert fatigue and need immediate visual context on AI-driven security decisions.
+
+**Device:** desktop
+
+**Design Direction:** High-precision industrial grid atop a dark obsidian void, punctuated by fluid neon gradients and organic data visualizations. Spacious, highly organized, and relentless in its clarity.
+
+**Inspired by:** Palantir Foundry, CrowdStrike Falcon (but with modern WebGL aesthetics), and sci-fi HUDs.
+
+---
+
+## Screens
+
+- **Overwatch Console:** High-level operational view combining critical plots and aggregated log streams.
+- **Neural Trust Matrix:** Deep dive into Trust Score decay, Slow-burn metrics, and EMA trends.
+- **ZTA Decision Flow:** Sankey-style timeline explaining Zero Trust architecture decisions and anomaly thresholds.
+- **Telemetry Stream:** Immersive full-screen view of 5 categorized live log feeds with streaming animations.
+
+---
+
+## Key Flows
+
+**Triaging a Trust Decay Alert:** Analyst spots a dropping Trust Score.
+
+1. User is on **Overwatch Console** -> sees a magenta warning pulse on the Trust Score plot.
+2. User clicks the **Trust Pulse Node** -> navigates to **Neural Trust Matrix**.
+3. User analyzes the Slow-burn correlation and identifies a compromised internal service account.
+
+**Tracing a ZTA Block:** Analyst investigates why a legitimate payload was dropped.
+
+1. User is on **ZTA Decision Flow** -> sees a severed branch in the Sankey timeline.
+2. User clicks the **Blocked Node** -> side-panel slides out revealing the exact Anomaly Score threshold breach.
+3. User updates the anomaly threshold boundary directly in the UI.
+
+---
+
+<details>
+<summary>Design System</summary>
+
+## Themes & Color Palette
+
+The platform supports three distinct themes, selectable via a global toggle. Neon accents remain consistent across all themes to preserve the cybernetic identity.
+
+**Default Theme: Obsidian Dark**
+- **Primary:** `#00E5FF` - Cyan neon, primary interactive elements, active states
+- **Background:** `#050608` - Vanta black, main canvas
+- **Surface:** `#0F1218` - Cards, modular grid panels
+- **Text:** `#F8FAFC` - Primary headings, high-contrast values
+- **Muted:** `#64748B` - Axis labels, timestamps, secondary logs
+
+**Theme: Light Mode** (High-contrast professional white/gray)
+- **Background:** `#F8FAFC`
+- **Surface:** `#FFFFFF`
+- **Text:** `#0F172A`
+- **Muted:** `#64748B`
+
+**Theme: Solarized Dark** (Specialized low-strain)
+- **Background:** `#002B36`
+- **Surface:** `#073642`
+- **Text:** `#839496`
+- **Muted:** `#586E75`
+
+**Global Accents (All Themes):**
+- **Accent 1 (Warning):** `#FF007F` - Magenta neon, anomaly spikes, severed trust
+- **Accent 2 (Healthy):** `#B9FF66` - Acid green, baseline operations, restored trust
+
+## Typography
+
+- **Headings:** Space Grotesk, 700, 24-32px
+- **Body:** Space Grotesk, 400, 16px
+- **Data/Logs:** JetBrains Mono, 400, 13px
+- **Small text:** JetBrains Mono, 400, 11px
+- **Buttons:** Space Grotesk, 600, 14px
+
+**Style notes:** 1px solid borders (`#1E293B`) on all modular panels, no rounded corners (`0px` radius) for an industrial feel. Data lines and gradients use intense Gaussian blurs to simulate glowing neon against the background.
+
+## Design Tokens
+
+```css
+:root {
+  /* Default Obsidian Dark */
+  --color-primary: #00E5FF;
+  --color-background: #050608;
+  --color-surface: #0F1218;
+  --color-text: #F8FAFC;
+  --color-muted: #64748B;
+  
+  /* Global Accents */
+  --color-magenta: #FF007F;
+  --color-acid: #B9FF66;
+  
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --radius: 0px;
+  --spacing: 24px;
+}
+
+[data-theme="light"] {
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-text: #0F172A;
+  --color-muted: #64748B;
+}
+
+[data-theme="solarized"] {
+  --color-background: #002B36;
+  --color-surface: #073642;
+  --color-text: #839496;
+  --color-muted: #586E75;
+}
+```
+
+</details>
+
+---
+
+<details>
+<summary>Screen Specifications</summary>
+
+### Overwatch Console
+
+**Purpose:** The central nervous system for the SOC analyst, providing instant situational awareness.
+
+**Layout:** Global header at top. 3-column CSS grid below. Left column: 5 compact live log feeds. Middle column: Trust Score and Anomaly plots. Right column: ZTA Flow and Quick Actions. 24px gaps.
+
+**Key Elements:**
+- **Global Trust Score Plot:** Top center. Shifting fluid gradient fill (Acid Green to Magenta based on health). JetBrains Mono axis.
+- **Mini ZTA Flow:** Top right. Simplified Sankey diagram showing real-time allow/block paths.
+- **Aggregated Log Ticker:** Left column. 5 vertically stacked boxes (Network, Auth, App, System, Security), each showing the last 3 events.
+
+**States:**
+- **Empty:** Grid outlines visible, subtle "AWAITING TELEMETRY" pulse.
+- **Loading:** Cybernetic scanline sweeping top to bottom over the grid.
+- **Error:** Panel border flashes `#FF007F`, displays `ERR_FEED_LOST`.
+
+**Components:**
+- **Global Header / Theme Toggle:** Top navigation bar containing a control to cycle through Obsidian Dark, Light Mode, and Solarized Dark themes.
+- **Log Item:** 100% width, JetBrains Mono 11px, Timestamp (Muted), Category Tag (Solid background), Message (Text).
+
+**Interactions:**
+- **Hover Plot Data Point:** Crosshair appears, tooltip with precise metric value, border glows Primary cyan.
+- **Click ZTA Node:** Expands node details, pushes other grid items down seamlessly.
+
+**Responsive:**
+- **Desktop:** 3-column grid, fixed heights.
+- **Tablet:** 2-column grid, logs move to bottom.
+- **Mobile:** Single column, stacked vertically, charts shrink to 200px height.
+
+### Neural Trust Matrix
+
+**Purpose:** Deep analysis of the AI's trust evaluation over time, correlating slow-burn threats with EMA.
+
+**Layout:** Global header at top. Split 50/50 horizontally. Top half: Massive Trust Score vs Time plot. Bottom half: Split into EMA vs Time and Slow-burn Score vs Time.
+
+**Key Elements:**
+- **Trust Decay Visualization:** Large organic spline chart. Fill is a dynamic SVG gradient. Areas dipping below 50% shift smoothly to `#FF007F`.
+- **EMA Plot:** Bottom left. Exponential Moving Average shown as a crisp 2px `#00E5FF` line with a 10px `#00E5FF` 20% opacity drop shadow.
+- **Slow-burn Score:** Bottom right. Step chart, `#B9FF66`, filling upwards like a rising water level.
+
+**States:**
+- **Loading:** Skeletons are dark `#1E293B` blocks with a slow lateral cyan gradient sweep.
+
+**Components:**
+- **Global Header / Theme Toggle:** Contains the global theme switcher (Obsidian, Light, Solarized).
+- **Time Range Selector:** Top right. Inline list. `1H`, `24H`, `7D`, `30D`. Active state: `#00E5FF` text, 1px bottom border.
+
+**Interactions:**
+- **Drag Selection on Plot:** Zooms all 3 plots concurrently to the selected timeframe.
+
+### ZTA Decision Flow & Anomalies
+
+**Purpose:** Explainability of the Zero Trust Architecture engine and threshold management.
+
+**Layout:** Global header at top. 70/30 split below. Left 70%: Sankey-style timeline. Right 30%: Anomaly Score vs Threshold plot.
+
+**Key Elements:**
+- **Decision Timeline:** Flowing Sankey diagram. Nodes are sharp rectangles. Links are fluid bezier curves. Approved flows are `#64748B` (muted), blocked flows are `#FF007F`.
+- **Anomaly Score vs Threshold:** Line chart with a dynamic heat shadow band. The threshold is a dashed red line. When the score (cyan line) crosses the threshold, the intersecting area glows intense magenta.
+
+**States:**
+- **Empty:** Sankey shows single straight line "NO TRAFFIC".
+
+**Components:**
+- **Global Header / Theme Toggle:** Contains the global theme switcher (Obsidian, Light, Solarized).
+- **Threshold Slider:** Vertical track alongside the Anomaly plot to manually drag and adjust the threshold line.
+
+**Interactions:**
+- **Hover Sankey Link:** Highlights path, fades others to 10% opacity, displays payload size and source IP.
+
+### Telemetry Stream
+
+**Purpose:** Unfiltered, real-time access to the 5 raw log pipelines for manual hunting.
+
+**Layout:** Global header at top. 5 equal vertical columns spanning full viewport width, terminal style.
+
+**Key Elements:**
+- **Network Logs:** Far left. Port and IP focus.
+- **Auth Logs:** Column 2. Highlighted usernames and success/fail tags.
+- **App Logs:** Column 3. Stack traces and API calls.
+- **System Logs:** Column 4. Kernel and resource metrics.
+- **Security Events:** Far right. IDS/IPS triggers, malware alerts.
+
+**States:**
+- **Paused:** Header turns `#64748B`, "STREAM PAUSED", logs stop moving.
+
+**Components:**
+- **Global Header / Theme Toggle:** Contains the global theme switcher (Obsidian, Light, Solarized).
+- **Stream Header:** Fixed at top of column. Category Name, Event Rate (e.g., `450 eps`), Play/Pause toggle.
+
+**Interactions:**
+- **Scroll up:** Pauses live stream automatically, allows historical scrolling.
+- **Click log row:** Expands row to show raw JSON payload in a surface container.
+
+</details>
+
+---
+
+<details>
+<summary>Build Guide</summary>
+
+**Stack:** HTML + Tailwind CSS v3 + D3.js (for custom organic/Sankey plots)
+
+**Build Order:**
+1. **Design System & Layout:** Set up CSS variables, theme switching logic (`data-theme`), base styles, JetBrains/Space Grotesk imports, and the core modular grid structure including the Global Header.
+2. **Telemetry Stream:** Build the 5-column log interface first to establish the streaming data mechanic and typography scale across themes.
+3. **Overwatch Console:** Integrate the compact versions of logs and basic charts to test grid responsiveness and spacing.
+4. **Neural Trust Matrix:** Implement the D3.js fluid gradients and complex synchronized zooming logic.
+5. **ZTA Decision Flow:** Build the Sankey diagram and threshold slider interaction last (highest complexity).
+
+</details>

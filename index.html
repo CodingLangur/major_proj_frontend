@@ -1,0 +1,1738 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Command Dashboard - SOC Overwatch</title>
+  
+  <!-- Tailwind CSS v3 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- D3.js v7 -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts: Space Grotesk and JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Design Tokens and Theme variables */
+    :root {
+      /* Default Obsidian Dark */
+      --color-primary: #00E5FF;
+      --color-background: #050608;
+      --color-surface: #0F1218;
+      --color-text: #F8FAFC;
+      --color-muted: #64748B;
+      --color-border: #1E293B;
+      --color-alert: #FF6B00;
+      --color-acid: #B9FF66;
+      --color-status-allow: #B9FF66;
+      --color-status-verify: #FFC800;
+      --color-status-blocked: #FF3333;
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --color-primary: #0ea5e9;
+      --color-background: #F8FAFC;
+      --color-surface: #FFFFFF;
+      --color-text: #0F172A;
+      --color-muted: #64748B;
+      --color-border: #E2E8F0;
+      --color-status-allow: #10B981;
+      --color-status-verify: #D97706;
+      --color-status-blocked: #DC2626;
+    }
+
+    [data-theme="solarized"] {
+      --color-primary: #2aa198;
+      --color-background: #002B36;
+      --color-surface: #073642;
+      --color-text: #839496;
+      --color-muted: #586E75;
+      --color-border: #586E75;
+      --color-status-allow: #859900;
+      --color-status-verify: #b58900;
+      --color-status-blocked: #dc322f;
+    }
+
+    /* Core Styles */
+    body {
+      font-family: var(--font-display);
+      background-color: var(--color-background);
+      color: var(--color-text);
+      overflow: hidden;
+      height: 100vh;
+      margin: 0;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .font-mono-data {
+      font-family: var(--font-mono);
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--color-primary);
+    }
+
+    /* Industrial grid outline and cards */
+    .cyber-panel {
+      border: 1px solid var(--color-border);
+      background-color: var(--color-surface);
+      border-radius: 0px; /* PRD specifies 0px */
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .cyber-panel:hover {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.05);
+    }
+
+    /* Neon glow effect helper */
+    .glow-cyan {
+      filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.4));
+    }
+    .glow-alert {
+      filter: drop-shadow(0 0 8px rgba(255, 107, 0, 0.4));
+    }
+    .glow-acid {
+      filter: drop-shadow(0 0 8px rgba(185, 255, 102, 0.4));
+    }
+    .glow-status-allow {
+      filter: drop-shadow(0 0 8px var(--color-status-allow));
+    }
+    .glow-status-verify {
+      filter: drop-shadow(0 0 8px var(--color-status-verify));
+    }
+    .glow-status-blocked {
+      filter: drop-shadow(0 0 8px var(--color-status-blocked));
+    }
+
+    /* Scanline Loading Sweep */
+    .scanline::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+      top: 0;
+      left: 0;
+      animation: scan 3s linear infinite;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    @keyframes scan {
+      0% { top: 0%; }
+      50% { top: 100%; }
+      100% { top: 0%; }
+    }
+
+    /* Alarm pulse state */
+    .alarm-flash {
+      border-color: var(--color-alert) !important;
+      animation: flash-border 1.5s infinite alternate;
+    }
+    @keyframes flash-border {
+      0% { box-shadow: 0 0 2px rgba(255, 0, 127, 0.2); }
+      100% { box-shadow: 0 0 15px rgba(255, 0, 127, 0.6); }
+    }
+
+    /* Telemetry row transitions */
+    .log-row {
+      transition: background-color 0.15s ease;
+      cursor: pointer;
+    }
+    .log-row:hover {
+      background-color: rgba(0, 229, 255, 0.05);
+    }
+
+    /* Tab active styles */
+    .tab-btn {
+      position: relative;
+      transition: color 0.2s ease;
+    }
+    .tab-btn.active {
+      color: var(--color-primary);
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: var(--color-primary);
+      box-shadow: 0 0 8px var(--color-primary);
+    }
+
+    /* D3 specific overlay styling */
+    .d3-tooltip {
+      position: absolute;
+      background-color: var(--color-surface);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      padding: 8px 12px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s ease;
+      z-index: 100;
+    }
+  </style>
+
+  <!-- Tailwind config matching theme variables -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: 'var(--color-primary)',
+            background: 'var(--color-background)',
+            surface: 'var(--color-surface)',
+            text: 'var(--color-text)',
+            muted: 'var(--color-muted)',
+            alert: 'var(--color-alert)',
+            acid: 'var(--color-acid)',
+            bordercol: 'var(--color-border)',
+            allow: 'var(--color-status-allow)',
+            verify: 'var(--color-status-verify)',
+            blocked: 'var(--color-status-blocked)',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="flex flex-col h-screen">
+
+  <!-- D3 Tooltip -->
+  <div id="d3-tooltip" class="d3-tooltip shadow-lg"></div>
+
+  <!-- Global Header -->
+  <header class="h-16 border-b border-bordercol bg-surface flex items-center justify-between px-6 z-10 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="relative flex items-center justify-center h-5 w-5">
+        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-acid opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-acid"></span>
+      </div>
+      <h1 class="text-xl font-bold tracking-wider font-mono-data text-text">
+        NEURAL COMMAND <span class="text-primary glow-cyan">OVERWATCH</span>
+      </h1>
+      <span class="text-xs bg-bordercol border border-bordercol px-2 py-0.5 font-mono-data text-muted mt-0.5">V1.0.4-BETA</span>
+      
+      <!-- Device Status Indicator -->
+      <div id="header-device-status-container" class="flex items-center gap-2 border-l border-bordercol pl-3 ml-1">
+        <div class="relative flex items-center justify-center h-4 w-4">
+          <span id="header-status-ping" class="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-allow opacity-75 glow-status-allow"></span>
+          <span id="header-status-dot" class="relative inline-flex rounded-full h-1.5 w-1.5 bg-allow"></span>
+        </div>
+        <span class="text-xs font-mono-data font-bold tracking-wider text-muted">DEVICE STATE:</span>
+        <span id="header-status-text" class="text-xs font-mono-data font-bold tracking-wider text-allow glow-status-allow">ALLOW</span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="flex h-full items-center gap-8">
+      <button onclick="switchTab('overwatch')" id="tab-overwatch" class="tab-btn active h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> OVERWATCH CONSOLE
+      </button>
+      <button onclick="switchTab('matrix')" id="tab-matrix" class="tab-btn h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
+        <i data-lucide="activity" class="w-4 h-4"></i> NEURAL TRUST MATRIX
+      </button>
+      <button onclick="switchTab('zta')" id="tab-zta" class="tab-btn h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
+        <i data-lucide="git-branch" class="w-4 h-4"></i> ZTA DECISION FLOW
+      </button>
+      <button onclick="switchTab('telemetry')" id="tab-telemetry" class="tab-btn h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
+        <i data-lucide="terminal" class="w-4 h-4"></i> TELEMETRY STREAM
+      </button>
+    </nav>
+
+    <!-- Theme Switcher -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center border border-bordercol bg-background p-0.5">
+        <button onclick="setTheme('dark')" id="theme-dark" class="px-2 py-1 text-xs font-mono-data bg-bordercol text-primary font-bold">OBSIDIAN</button>
+        <button onclick="setTheme('light')" id="theme-light" class="px-2 py-1 text-xs font-mono-data text-muted hover:text-text">LIGHT</button>
+        <button onclick="setTheme('solarized')" id="theme-solarized" class="px-2 py-1 text-xs font-mono-data text-muted hover:text-text">SOLARIZED</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="flex-grow p-6 overflow-hidden relative bg-background/20">
+
+    <!-- VIEW: OVERWATCH CONSOLE -->
+    <div id="view-overwatch" class="view-pane grid grid-cols-12 gap-6 h-full">
+      <!-- Middle Column: Main Charts (75%) -->
+      <div class="col-span-9 flex flex-col gap-6 h-full overflow-hidden">
+        <!-- Global Trust Score Plot -->
+        <div class="flex-1 cyber-panel p-4 flex flex-col min-h-[220px]">
+          <div class="flex justify-between items-center mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono-data font-bold tracking-widest text-muted">GLOBAL TRUST PULSE</span>
+              <span id="trust-percentage" class="text-lg font-bold font-mono-data text-acid glow-acid">94%</span>
+            </div>
+            <span class="text-[10px] font-mono-data text-muted">REAL-TIME ORGANIC SPLINE</span>
+          </div>
+          <div class="flex-grow relative" id="chart-container-trust">
+            <!-- D3 trust chart renders here -->
+          </div>
+        </div>
+
+        <!-- Anomaly Score plot -->
+        <div class="flex-1 cyber-panel p-4 flex flex-col min-h-[220px]">
+          <div class="flex justify-between items-center mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono-data font-bold tracking-widest text-muted">ANOMALY COEFFICIENT</span>
+              <span id="anomaly-value" class="text-lg font-bold font-mono-data text-text">14.2</span>
+            </div>
+            <span class="text-[10px] font-mono-data text-muted text-alert" id="status-anomaly-alert">STATUS: STEADY baseline</span>
+          </div>
+          <div class="flex-grow relative" id="chart-container-anomaly">
+            <!-- D3 anomaly chart renders here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Decision flow & Quick Actions (25%) -->
+      <div class="col-span-3 flex flex-col gap-6 h-full overflow-hidden">
+        <!-- Mini ZTA Flow -->
+        <div class="flex-grow cyber-panel p-4 flex flex-col min-h-[250px]">
+          <div class="flex justify-between items-center mb-2 border-b border-bordercol pb-2">
+            <span class="text-xs font-mono-data font-bold tracking-widest text-muted">MINI ZTA DECISION FLOW</span>
+            <span class="text-[9px] font-mono-data text-muted">REAL-TIME FLOW PATHS</span>
+          </div>
+          <div class="flex-grow relative" id="chart-container-mini-zta">
+            <!-- D3 Mini Sankey flow renders here -->
+          </div>
+        </div>
+
+        <!-- Quick actions / System status -->
+        <div class="cyber-panel p-4 flex flex-col gap-3 shrink-0">
+          <div class="text-xs font-mono-data font-bold tracking-widest text-muted mb-1">DECISION MATRIX CONTROLS</div>
+          <div class="grid grid-cols-2 gap-2 text-xs font-mono-data">
+            <div class="border border-bordercol bg-background/50 p-2 flex flex-col">
+              <span class="text-muted text-[10px]">SIM SPEED</span>
+              <select id="select-speed" onchange="changeSimSpeed(this.value)" class="bg-transparent border-0 text-text outline-none font-bold mt-1">
+                <option value="500" selected>NORMAL (500ms)</option>
+                <option value="200">WARP (200ms)</option>
+                <option value="1000">SLOW (1000ms)</option>
+              </select>
+            </div>
+            <div class="border border-bordercol bg-background/50 p-2 flex flex-col justify-between">
+              <span class="text-muted text-[10px]">ALERT LIMITS</span>
+              <span id="txt-slider-val" class="font-bold text-alert mt-1">75.0</span>
+            </div>
+            <div class="col-span-2 border border-bordercol bg-background/50 p-2 flex items-center justify-between">
+              <div class="flex flex-col">
+                <span class="text-muted text-[10px]">DEVICE STATE POLICY</span>
+                <select id="select-device-policy" onchange="changeDevicePolicy(this.value)" class="bg-transparent border-0 text-allow font-bold mt-0.5 outline-none cursor-pointer">
+                  <option value="auto" class="bg-surface text-allow" selected>AUTO (ZTA ENGINE)</option>
+                  <option value="allow" class="bg-surface text-allow">FORCE ALLOW (GREEN)</option>
+                  <option value="verify" class="bg-surface text-verify">FORCE VERIFY (YELLOW)</option>
+                  <option value="block" class="bg-surface text-blocked">FORCE BLOCK (RED)</option>
+                </select>
+              </div>
+              <div class="flex items-center gap-1.5 border border-bordercol/50 bg-background/80 px-2 py-1">
+                <span id="control-status-dot" class="inline-block h-2 w-2 rounded-full bg-allow glow-status-allow"></span>
+                <span id="control-status-text" class="text-[10px] font-bold text-allow font-mono-data uppercase">ALLOW</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-1.5 text-xs font-mono-data mt-1 border-t border-bordercol pt-3">
+            <div class="flex justify-between">
+              <span class="text-muted">DECISION ENGINE:</span>
+              <span class="text-acid font-bold">OPERATIONAL</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-muted">TRUST SHIELD EMA:</span>
+              <span class="text-text font-bold" id="matrix-stats-ema">89.4</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-muted">ACTIVE ANOMALIES:</span>
+              <span id="matrix-active-anomalies" class="text-text font-bold">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: NEURAL TRUST MATRIX -->
+    <div id="view-matrix" class="view-pane hidden flex flex-col gap-6 h-full">
+      <div class="flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-mono-data font-bold tracking-widest text-muted">NEURAL PULSE DECAY MATRIX</span>
+          <span class="text-xs bg-primary/10 border border-primary text-primary px-2 font-mono-data">EMA DECAY ENABLED</span>
+        </div>
+        <!-- Time Range Selector -->
+        <div class="flex border border-bordercol bg-surface p-0.5 text-xs font-mono-data">
+          <button onclick="selectTimeRange('1H')" id="tr-1H" class="px-2 py-0.5 text-primary border-b border-primary">1H</button>
+          <button onclick="selectTimeRange('24H')" id="tr-24H" class="px-2 py-0.5 text-muted hover:text-text">24H</button>
+          <button onclick="selectTimeRange('7D')" id="tr-7D" class="px-2 py-0.5 text-muted hover:text-text">7D</button>
+          <button onclick="selectTimeRange('30D')" id="tr-30D" class="px-2 py-0.5 text-muted hover:text-text">30D</button>
+        </div>
+      </div>
+
+      <!-- Split Layout -->
+      <div class="flex-grow flex flex-col gap-6 overflow-hidden">
+        <!-- Top Half: Large Trust Score Plot -->
+        <div class="flex-1 cyber-panel p-4 flex flex-col min-h-[180px]">
+          <div class="flex justify-between text-xs font-mono-data text-muted mb-2 font-semibold">
+            <span>TRUST DECAY SPLINE (DRAG MOUSE TO BRUSH & ZOOM ALL PLOTS)</span>
+            <span class="text-primary font-bold">BRUSH & FILTER ENGINE</span>
+          </div>
+          <div class="flex-grow relative" id="chart-container-large-trust">
+            <!-- D3 large spline trust chart -->
+          </div>
+        </div>
+
+        <!-- Bottom Half: Two columns (EMA and Slow-burn) -->
+        <div class="flex-1 flex gap-6 min-h-[180px]">
+          <div class="flex-1 cyber-panel p-4 flex flex-col">
+            <div class="flex justify-between text-xs font-mono-data text-muted mb-2 font-semibold">
+              <span>EXPONENTIAL MOVING AVERAGE (EMA) INDEX</span>
+              <span class="text-primary">2px Spline + shadow glow</span>
+            </div>
+            <div class="flex-grow relative" id="chart-container-ema">
+              <!-- D3 EMA Chart -->
+            </div>
+          </div>
+          <div class="flex-1 cyber-panel p-4 flex flex-col">
+            <div class="flex justify-between text-xs font-mono-data text-muted mb-2 font-semibold">
+              <span>SLOW-BURN CORRELATION TREND</span>
+              <span class="text-acid">Acid Green Upwards step fill</span>
+            </div>
+            <div class="flex-grow relative" id="chart-container-slowburn">
+              <!-- D3 Slow-burn Step Chart -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: ZTA DECISION FLOW -->
+    <div id="view-zta" class="view-pane hidden grid grid-cols-10 gap-6 h-full">
+      <!-- Left 100%: Sankey Diagram -->
+      <div class="col-span-10 flex flex-col gap-4 h-full overflow-hidden">
+        <div class="flex justify-between items-center text-xs font-mono-data text-muted tracking-widest font-semibold shrink-0">
+          <span>ZERO TRUST DECISION PATHS & NODE MAPPING</span>
+          <span class="text-[10px] text-muted normal-case font-medium">Hover paths to inspect telemetry payloads</span>
+        </div>
+        <div class="flex-grow cyber-panel p-6 flex flex-col">
+          <div class="flex-grow relative" id="chart-container-sankey">
+            <!-- D3 Sankey Diagram -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: TELEMETRY STREAM -->
+    <div id="view-telemetry" class="view-pane hidden flex flex-col gap-6 h-full">
+      <div class="flex justify-between items-center shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-mono-data font-bold tracking-widest text-muted">RAW RAW PIPELINES TELEMETRY STREAMS</span>
+          <span class="text-xs bg-bordercol border border-bordercol text-text px-2 font-mono-data" id="txt-stream-status">REALTIME MODE: LIVE STREAMING</span>
+        </div>
+        <button onclick="toggleAllStreams()" id="btn-stream-all" class="text-xs font-mono-data border border-bordercol bg-surface hover:border-primary px-3 py-1 font-semibold text-text flex items-center gap-1.5">
+          <i data-lucide="pause" class="w-3.5 h-3.5" id="btn-stream-all-icon"></i> <span id="btn-stream-all-txt">PAUSE ALL STREAMS</span>
+        </button>
+      </div>
+
+      <!-- 5 columns -->
+      <div class="flex-grow flex gap-4 overflow-hidden h-full">
+        <!-- Col 1: Network -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
+          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-net">
+            <span class="text-primary font-bold">NETWORK LOGS</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted text-[10px]" id="rate-stream-net">345 eps</span>
+              <button onclick="toggleStream('network')" class="p-1 hover:text-primary transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-net"></i></button>
+            </div>
+          </div>
+          <div id="stream-network" onscroll="handleStreamScroll('network', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
+        </div>
+
+        <!-- Col 2: Auth -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
+          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-auth">
+            <span class="text-acid font-bold">AUTHENTICATION</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted text-[10px]" id="rate-stream-auth">82 eps</span>
+              <button onclick="toggleStream('auth')" class="p-1 hover:text-acid transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-auth"></i></button>
+            </div>
+          </div>
+          <div id="stream-auth" onscroll="handleStreamScroll('auth', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
+        </div>
+
+        <!-- Col 3: App -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
+          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-app">
+            <span class="text-primary font-bold">APPLICATION</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted text-[10px]" id="rate-stream-app">180 eps</span>
+              <button onclick="toggleStream('app')" class="p-1 hover:text-primary transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-app"></i></button>
+            </div>
+          </div>
+          <div id="stream-app" onscroll="handleStreamScroll('app', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
+        </div>
+
+        <!-- Col 4: System -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
+          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-sys">
+            <span class="text-text font-bold">SYSTEM</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted text-[10px]" id="rate-stream-sys">415 eps</span>
+              <button onclick="toggleStream('system')" class="p-1 hover:text-muted transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-sys"></i></button>
+            </div>
+          </div>
+          <div id="stream-system" onscroll="handleStreamScroll('system', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
+        </div>
+
+        <!-- Col 5: Security -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel" id="stream-panel-sec">
+          <div class="h-12 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-sec">
+            <span class="text-alert font-bold">SECURITY EVENTS</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-muted text-[10px]" id="rate-stream-sec">8 eps</span>
+              <button onclick="toggleStream('security')" class="p-1 hover:text-alert transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-sec"></i></button>
+            </div>
+          </div>
+          <div id="stream-security" onscroll="handleStreamScroll('security', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Global Footer -->
+  <footer class="h-10 border-t border-bordercol bg-surface flex items-center justify-between px-6 z-10 shrink-0 text-[11px] font-mono-data text-muted">
+    <div class="flex items-center gap-6">
+      <span>ZTA PROTECTION LAYER: <span class="text-acid font-bold">SHIELD ACTIVE</span></span>
+      <span>|</span>
+      <span>ANOMALY THRESHOLD: <span id="footer-anomaly-val">75.0</span></span>
+      <span>|</span>
+      <span>SYSTEM LOAD: <span class="text-primary font-bold">14.2%</span></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="animate-pulse h-1.5 w-1.5 rounded-full bg-primary inline-block"></span>
+      <span>FEED SYNC: OK</span>
+    </div>
+  </footer>
+
+  <script>
+    // Global State Variables
+    let currentTab = 'overwatch';
+    let currentTheme = 'dark';
+    let anomalyThreshold = 75.0;
+    let simInterval = 500; // ms
+    let simTimer = null;
+    let isIntrusionActive = false;
+    let intrusionDuration = 0;
+    let devicePolicy = 'auto';
+    let currentDeviceState = 'allow';
+    
+    // Log Streams Status
+    const streamStatus = {
+      network: { active: true, eps: 345, timer: 0 },
+      auth: { active: true, eps: 82, timer: 0 },
+      app: { active: true, eps: 180, timer: 0 },
+      system: { active: true, eps: 415, timer: 0 },
+      security: { active: true, eps: 8, timer: 0 }
+    };
+    
+    // Data stores
+    const maxDataPoints = 60;
+    const telemetryHistory = []; // Chart timeline data
+    let breachCount = 0;
+    
+    // Initialize mock historical data
+    let baseTime = Date.now() - (maxDataPoints * 5000);
+    let lastTrust = 94;
+    let lastEMA = 92;
+    let lastSlowburn = 12;
+    let lastAnomaly = 14;
+
+    for (let i = 0; i < maxDataPoints; i++) {
+      baseTime += 5000;
+      lastTrust = Math.max(10, Math.min(100, lastTrust + (Math.random() - 0.5) * 4));
+      lastEMA = lastEMA * 0.9 + lastTrust * 0.1;
+      lastSlowburn = Math.max(0, Math.min(100, lastSlowburn + (Math.random() - 0.4) * 5));
+      lastAnomaly = Math.max(2, Math.min(100, lastAnomaly + (Math.random() - 0.5) * 8));
+      telemetryHistory.push({
+        time: new Date(baseTime),
+        trustScore: lastTrust,
+        ema: lastEMA,
+        slowBurn: lastSlowburn,
+        anomalyScore: lastAnomaly
+      });
+    }
+
+    // Dynamic zoom scales
+    let zoomSelection = null;
+
+    // Log payload options
+    const logTemplates = {
+      network: [
+        { msg: "TCP Connection established: 10.230.12.44:48321 -> 192.168.10.15:443", payload: { protocol: "TCP", src: "10.230.12.44:48321", dst: "192.168.10.15:443", bytes: 1420 } },
+        { msg: "DNS query: api.internal.cloud.net -> resolved to 10.0.8.22", payload: { query: "api.internal.cloud.net", type: "A", resolved: "10.0.8.22" } },
+        { msg: "TLS Handshake completed successfully", payload: { ver: "TLSv1.3", cipher: "TLS_AES_256_GCM_SHA384", sni: "api.internal.cloud.net" } },
+        { msg: "Inbound UDP packet dropped: spoofed source header", payload: { src: "198.51.100.17", dst: "10.0.1.5", size: 64, flag: "DF" } }
+      ],
+      auth: [
+        { msg: "User log-in successful: s_adams on console-01", payload: { user: "s_adams", session: "session_98a72b", success: true, method: "MFA_DUO" } },
+        { msg: "SSH session opened: admin from 192.168.4.15", payload: { service: "sshd", auth: "public_key", user: "admin", ip: "192.168.4.15" } },
+        { msg: "API token issued for service_worker_node_4", payload: { client_id: "svc_worker_node_4", scope: "read:telemetry", duration: "3600s" } },
+        { msg: "Failed root login attempt on node-db-03 (3 retries)", payload: { service: "sshd", method: "password", user: "root", ip: "10.23.4.192", failed: true } }
+      ],
+      app: [
+        { msg: "GET /api/v1/telemetry HTTP/1.1 - 200 OK", payload: { route: "/api/v1/telemetry", duration_ms: 12.4, status: 200 } },
+        { msg: "POST /auth/refresh-token HTTP/1.1 - 200 OK", payload: { route: "/auth/refresh-token", duration_ms: 45.1, status: 200 } },
+        { msg: "Query database collection: events_store - index hit", payload: { coll: "events_store", filter: "{'status': 'active'}", execution_ms: 3 } },
+        { msg: "NullPointerException: service dispatcher failure", payload: { thread: "dispatcher-12", exception: "NullPointerException", stackTrace: "at main.dispatcher.run(Dispatcher.java:144)\nat main.App.start(App.java:32)" } }
+      ],
+      system: [
+        { msg: "CPU Load average normal: 0.12, 0.15, 0.18", payload: { load_1m: 0.12, load_5m: 0.15, load_15m: 0.18 } },
+        { msg: "Buffer cleanup complete. Released 104 MB memory", payload: { gc_cycle: "minor", duration_ms: 2, freed_bytes: 109051904 } },
+        { msg: "Disk controller baseline optimal: IOPS 2450", payload: { drive: "nvme0n1", read_iops: 1800, write_iops: 650 } },
+        { msg: "Kernel driver interface reset complete: eth0", payload: { driver: "e1000e", nic: "eth0", event: "reset_link_up" } }
+      ],
+      security: [
+        { msg: "Firewall rule breach: port scan activity detected", payload: { sensor: "ids_fw_02", source: "185.190.140.3", ports_hit: [22, 80, 443, 8080], severity: "MEDIUM" } },
+        { msg: "Suspicious API call from un-routed subnet", payload: { endpoint: "/admin/config", ip: "203.0.113.88", action: "DENIED", severity: "HIGH" } },
+        { msg: "ZTA Block: Anomalous token usage trace", payload: { decision: "BLOCK", trigger: "entropy_threshold_crossed", token_age_sec: 2, score: 98.4 } },
+        { msg: "Malware Signature Match: webshell.php signature", payload: { path: "/var/www/html/upload/tmp_x2.php", sig_id: "MAL-992-WEB", action: "QUARANTINED" } }
+      ]
+    };
+
+    const intrusionLogs = {
+      network: [
+        { msg: "SPIKE: Massive SYN flood detected from 192.168.99.12", payload: { protocol: "TCP", src: "192.168.99.12", dst: "10.0.1.1", flags: "SYN", packet_rate: "12500 pps" } }
+      ],
+      auth: [
+        { msg: "ALERT: Brute force attempts: 50 failures for s_adams", payload: { user: "s_adams", retries: 54, last_attempt_ip: "192.168.99.12", method: "PASSWORD" } }
+      ],
+      app: [
+        { msg: "CRITICAL: RCE Command Injection Payload detected in HTTP header", payload: { route: "/api/v1/upload", query: "; rm -rf /", user_agent: "curl/7.81.0" } }
+      ],
+      system: [
+        { msg: "SYSTEM WARN: CPU Core temperature alert. Load exceeds 99%", payload: { core_0_temp: "92C", throttling: "ACTIVE", load: 0.99 } }
+      ],
+      security: [
+        { msg: "INTRUSION EXPLOIT DETECTED: Service Account compromise validation", payload: { target: "svc_worker_node_4", token_leak: true, action: "ROOT_SHELL_OPENED", severity: "CRITICAL" } }
+      ]
+    };
+
+    // Helper: format timestamp as HH:MM:SS.mmm
+    function formatTime(date) {
+      let hh = String(date.getHours()).padStart(2, '0');
+      let mm = String(date.getMinutes()).padStart(2, '0');
+      let ss = String(date.getSeconds()).padStart(2, '0');
+      let ms = String(date.getMilliseconds()).padStart(3, '0');
+      return `${hh}:${mm}:${ss}.${ms}`;
+    }
+
+    // Switch View Tabs
+    function switchTab(tabId) {
+      currentTab = tabId;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.view-pane').forEach(pane => pane.classList.add('hidden'));
+      
+      document.getElementById('tab-' + tabId).classList.add('active');
+      
+      const targetPane = document.getElementById('view-' + tabId);
+      if (targetPane) {
+        targetPane.classList.remove('hidden');
+        if (tabId === 'zta') {
+          targetPane.classList.remove('grid'); // Keep tailwind grids happy
+          targetPane.classList.add('grid');
+        }
+      }
+      
+      // Force D3 charts redraw
+      triggerRedraws();
+    }
+
+    // Theme Configurer
+    function setTheme(theme) {
+      currentTheme = theme;
+      document.documentElement.setAttribute('data-theme', theme);
+      
+      document.querySelectorAll('[id^="theme-"]').forEach(btn => {
+        btn.classList.remove('bg-bordercol', 'text-primary', 'font-bold');
+        btn.classList.add('text-muted');
+      });
+      
+      const activeBtn = document.getElementById('theme-' + theme);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-muted');
+        activeBtn.classList.add('bg-bordercol', 'text-primary', 'font-bold');
+      }
+      
+      // Redraw charts with new theme colors
+      triggerRedraws();
+    }
+
+    // Device State Policy Management
+    function changeDevicePolicy(policy) {
+      devicePolicy = policy;
+      updateDeviceState();
+      triggerRedraws(); // Redraw D3 flows immediately to reflect policy overrides
+    }
+
+    function updateDeviceState() {
+      let targetState = 'allow';
+      
+      if (devicePolicy === 'auto') {
+        const lastData = telemetryHistory[telemetryHistory.length - 1];
+        if (lastData) {
+          if (isIntrusionActive || lastData.anomalyScore > anomalyThreshold) {
+            targetState = 'block';
+          } else if (lastData.anomalyScore > anomalyThreshold * 0.7 || lastData.trustScore < 65) {
+            targetState = 'verify';
+          } else {
+            targetState = 'allow';
+          }
+        }
+      } else {
+        targetState = devicePolicy;
+      }
+      
+      currentDeviceState = targetState;
+      
+      // 1. Update Global Header UI
+      const headerText = document.getElementById('header-status-text');
+      const headerPing = document.getElementById('header-status-ping');
+      const headerDot = document.getElementById('header-status-dot');
+      
+      if (headerText && headerPing && headerDot) {
+        headerText.innerText = targetState.toUpperCase();
+        
+        const classesToRemove = ['bg-allow', 'bg-verify', 'bg-blocked', 'text-allow', 'text-verify', 'text-blocked', 'glow-status-allow', 'glow-status-verify', 'glow-status-blocked'];
+        headerPing.classList.remove(...classesToRemove);
+        headerDot.classList.remove(...classesToRemove);
+        headerText.classList.remove(...classesToRemove);
+        
+        if (targetState === 'allow') {
+          headerPing.classList.add('bg-allow', 'glow-status-allow');
+          headerDot.classList.add('bg-allow');
+          headerText.classList.add('text-allow', 'glow-status-allow');
+        } else if (targetState === 'verify') {
+          headerPing.classList.add('bg-verify', 'glow-status-verify');
+          headerDot.classList.add('bg-verify');
+          headerText.classList.add('text-verify', 'glow-status-verify');
+        } else if (targetState === 'block') {
+          headerPing.classList.add('bg-blocked', 'glow-status-blocked');
+          headerDot.classList.add('bg-blocked');
+          headerText.classList.add('text-blocked', 'glow-status-blocked');
+        }
+      }
+      
+      // 2. Update Overwatch Controls Card
+      const selectElem = document.getElementById('select-device-policy');
+      const controlDot = document.getElementById('control-status-dot');
+      const controlText = document.getElementById('control-status-text');
+      
+      if (selectElem && controlDot && controlText) {
+        selectElem.classList.remove('text-allow', 'text-verify', 'text-blocked');
+        
+        controlText.innerText = targetState.toUpperCase();
+        
+        const classesToRemove = ['bg-allow', 'bg-verify', 'bg-blocked', 'text-allow', 'text-verify', 'text-blocked', 'glow-status-allow', 'glow-status-verify', 'glow-status-blocked'];
+        controlDot.classList.remove(...classesToRemove);
+        controlText.classList.remove(...classesToRemove);
+        
+        if (targetState === 'allow') {
+          selectElem.classList.add('text-allow');
+          controlDot.classList.add('bg-allow', 'glow-status-allow');
+          controlText.classList.add('text-allow');
+        } else if (targetState === 'verify') {
+          selectElem.classList.add('text-verify');
+          controlDot.classList.add('bg-verify', 'glow-status-verify');
+          controlText.classList.add('text-verify');
+        } else if (targetState === 'block') {
+          selectElem.classList.add('text-blocked');
+          controlDot.classList.add('bg-blocked', 'glow-status-blocked');
+          controlText.classList.add('text-blocked');
+        }
+      }
+      
+      // 3. Update ZTA View Panel UI
+      const ztaStatusText = document.getElementById('zta-device-status');
+      if (ztaStatusText) {
+        ztaStatusText.innerText = targetState.toUpperCase();
+        ztaStatusText.classList.remove('text-allow', 'text-verify', 'text-blocked', 'glow-status-allow', 'glow-status-verify', 'glow-status-blocked');
+        
+        if (targetState === 'allow') {
+          ztaStatusText.classList.add('text-allow', 'glow-status-allow');
+        } else if (targetState === 'verify') {
+          ztaStatusText.classList.add('text-verify', 'glow-status-verify');
+        } else if (targetState === 'block') {
+          ztaStatusText.classList.add('text-blocked', 'glow-status-blocked');
+        }
+      }
+    }
+
+    // Simulation controls removed as real backend is ready. Baseline telemetry active.
+
+    function changeSimSpeed(val) {
+      simInterval = parseInt(val);
+      clearInterval(simTimer);
+      startSimulation();
+    }
+
+    function updateThresholdValue(val) {
+      anomalyThreshold = parseFloat(val);
+      const txtSliderVal = document.getElementById('txt-slider-val');
+      if (txtSliderVal) txtSliderVal.innerText = anomalyThreshold.toFixed(1);
+      const ztaThresholdDisplay = document.getElementById('zta-threshold-display');
+      if (ztaThresholdDisplay) ztaThresholdDisplay.innerText = `LIMIT: ${anomalyThreshold.toFixed(1)}`;
+      const footerAnomalyVal = document.getElementById('footer-anomaly-val');
+      if (footerAnomalyVal) footerAnomalyVal.innerText = anomalyThreshold.toFixed(1);
+      
+      // Redraw anomaly charts
+      triggerRedraws();
+    }
+
+    // Select Time Range (Neural matrix view)
+    function selectTimeRange(range) {
+      document.querySelectorAll('[id^="tr-"]').forEach(btn => {
+        btn.className = "px-2 py-0.5 text-muted hover:text-text";
+      });
+      document.getElementById('tr-' + range).className = "px-2 py-0.5 text-primary border-b border-primary";
+      
+      // Reset zoom bounds based on simulated ranges
+      zoomSelection = null;
+      drawMatrixCharts();
+    }
+
+    // Stream Scroll Handlers (Auto Pause detection)
+    function handleStreamScroll(streamName, container) {
+      // If user scrolled up, pause the stream. If scrolled to bottom, play.
+      const isAtBottom = container.scrollHeight - container.clientHeight - container.scrollTop < 15;
+      
+      if (!isAtBottom && streamStatus[streamName].active) {
+        streamStatus[streamName].active = false;
+        document.getElementById('icon-stream-' + streamName).setAttribute('data-lucide', 'play');
+        document.getElementById('header-stream-' + streamName).classList.add('opacity-60');
+        lucide.createIcons();
+        updateGlobalStreamToggleText();
+      } else if (isAtBottom && !streamStatus[streamName].active) {
+        streamStatus[streamName].active = true;
+        document.getElementById('icon-stream-' + streamName).setAttribute('data-lucide', 'pause');
+        document.getElementById('header-stream-' + streamName).classList.remove('opacity-60');
+        lucide.createIcons();
+        updateGlobalStreamToggleText();
+      }
+    }
+
+    function toggleStream(streamName) {
+      const active = !streamStatus[streamName].active;
+      streamStatus[streamName].active = active;
+      
+      const container = document.getElementById('stream-' + streamName);
+      if (active) {
+        // Scroll to bottom immediately
+        container.scrollTop = container.scrollHeight;
+        document.getElementById('icon-stream-' + streamName).setAttribute('data-lucide', 'pause');
+        document.getElementById('header-stream-' + streamName).classList.remove('opacity-60');
+      } else {
+        document.getElementById('icon-stream-' + streamName).setAttribute('data-lucide', 'play');
+        document.getElementById('header-stream-' + streamName).classList.add('opacity-60');
+      }
+      lucide.createIcons();
+      updateGlobalStreamToggleText();
+    }
+
+    function toggleAllStreams() {
+      // Find out if any is active
+      const anyActive = Object.values(streamStatus).some(s => s.active);
+      
+      Object.keys(streamStatus).forEach(streamName => {
+        streamStatus[streamName].active = !anyActive;
+        const container = document.getElementById('stream-' + streamName);
+        if (!anyActive) {
+          container.scrollTop = container.scrollHeight;
+          document.getElementById('icon-stream-' + streamName).setAttribute('data-lucide', 'pause');
+          document.getElementById('header-stream-' + streamName).classList.remove('opacity-60');
+        } else {
+          document.getElementById('icon-stream-' + streamName).setAttribute('data-lucide', 'play');
+          document.getElementById('header-stream-' + streamName).classList.add('opacity-60');
+        }
+      });
+      lucide.createIcons();
+      updateGlobalStreamToggleText();
+    }
+
+    function updateGlobalStreamToggleText() {
+      const anyActive = Object.values(streamStatus).some(s => s.active);
+      const btnIcon = document.getElementById('btn-stream-all-icon');
+      const btnTxt = document.getElementById('btn-stream-all-txt');
+      const globalStatus = document.getElementById('txt-stream-status');
+      
+      if (anyActive) {
+        btnIcon.setAttribute('data-lucide', 'pause');
+        btnTxt.innerText = "PAUSE ALL STREAMS";
+        globalStatus.innerText = "REALTIME MODE: LIVE STREAMING";
+        globalStatus.className = "text-xs bg-bordercol border border-bordercol text-text px-2 font-mono-data";
+      } else {
+        btnIcon.setAttribute('data-lucide', 'play');
+        btnTxt.innerText = "RESUME ALL STREAMS";
+        globalStatus.innerText = "REALTIME MODE: STREAMS PAUSED";
+        globalStatus.className = "text-xs bg-alert/10 border border-alert text-alert px-2 font-mono-data";
+      }
+      lucide.createIcons();
+    }
+
+    // Toggle log details modal/container
+    function expandLog(element, payloadJson) {
+      // check if details are already expanded
+      const nextSibling = element.nextElementSibling;
+      if (nextSibling && nextSibling.classList.contains('log-details-block')) {
+        nextSibling.remove();
+        return;
+      }
+      
+      // Close any other open logs details in this column
+      const parent = element.parentElement;
+      parent.querySelectorAll('.log-details-block').forEach(b => b.remove());
+
+      const detailsDiv = document.createElement('div');
+      detailsDiv.className = "log-details-block bg-background/80 border-l-2 border-primary p-2 mt-1 font-mono-data text-[10px] text-text shrink-0 leading-relaxed overflow-x-auto";
+      detailsDiv.innerHTML = `<pre class="text-xs text-primary/90">${JSON.stringify(payloadJson, null, 2)}</pre>`;
+      element.after(detailsDiv);
+    }
+
+    // Simulation Data Generator
+    function generateLog(category, overrideIntrusion = false) {
+      const pool = (isIntrusionActive || overrideIntrusion) ? intrusionLogs[category] : logTemplates[category];
+      const template = pool[Math.floor(Math.random() * pool.length)];
+      
+      const timestamp = new Date();
+      const timeStr = formatTime(timestamp);
+      
+      // Format category tag html
+      let tagColor = "bg-primary text-background";
+      if (category === 'auth') tagColor = "bg-acid text-background";
+      if (category === 'security' || (isIntrusionActive && Math.random() > 0.4)) tagColor = "bg-alert text-background";
+      if (category === 'system') tagColor = "bg-bordercol text-muted border border-bordercol";
+      
+      // Update Stream panel
+      const streamContainer = document.getElementById('stream-' + category);
+      if (streamContainer && streamStatus[category].active) {
+        const row = document.createElement('div');
+        row.className = "log-row flex gap-2 items-start py-0.5 border-b border-bordercol/30 shrink-0";
+        row.onclick = () => expandLog(row, template.payload);
+        
+        row.innerHTML = `
+          <span class="text-muted shrink-0 select-none">${timeStr}</span>
+          <span class="px-1 font-bold ${tagColor} shrink-0 text-[9px] uppercase leading-none mt-0.5 tracking-wider">${category}</span>
+          <span class="text-text flex-grow truncate">${template.msg}</span>
+        `;
+        
+        streamContainer.appendChild(row);
+        
+        // Cap lines at 80
+        while (streamContainer.childElementCount > 80) {
+          streamContainer.removeChild(streamContainer.firstChild);
+        }
+        // Auto scroll to bottom
+        streamContainer.scrollTop = streamContainer.scrollHeight;
+      }
+
+      // Update Tickers on Overwatch View (Keep exactly 3)
+      const tickerContainer = document.getElementById('ticker-' + category);
+      if (tickerContainer) {
+        const item = document.createElement('div');
+        item.className = "truncate flex gap-1.5 py-0.5 border-b border-bordercol/20 cursor-pointer hover:text-text";
+        item.onclick = () => {
+          switchTab('telemetry');
+          // Wait for render then scroll
+          setTimeout(() => {
+            const rowInStream = Array.from(document.getElementById('stream-' + category).children).pop();
+            if (rowInStream) rowInStream.click();
+          }, 100);
+        };
+        item.innerHTML = `
+          <span class="text-muted shrink-0 text-[10px]">${timeStr.substring(0,8)}</span>
+          <span class="text-text truncate">${template.msg}</span>
+        `;
+        tickerContainer.appendChild(item);
+        
+        if (tickerContainer.childElementCount > 3) {
+          tickerContainer.removeChild(tickerContainer.firstChild);
+        }
+      }
+    }
+
+    // Step Simulation
+    function stepSimulation() {
+      // 1. Generate logs based on category EPS rates relative to speed
+      Object.keys(streamStatus).forEach(cat => {
+        // Randomly trigger events according to realistic weights
+        let odds = streamStatus[cat].eps / 1000;
+        if (simInterval === 200) odds *= 0.5; // Scale odds to fit faster cycle
+        if (simInterval === 1000) odds *= 2.0;
+        
+        if (Math.random() < odds || isIntrusionActive) {
+          generateLog(cat);
+        }
+      });
+
+      // 2. Compute metrics
+      let trustDiff = (Math.random() - 0.5) * 3;
+      let anomalyDiff = (Math.random() - 0.5) * 5;
+      
+      if (isIntrusionActive) {
+        trustDiff -= 4.0; // Decay score quickly
+        anomalyDiff += 8.0; // Increase anomalies quickly
+        intrusionDuration--;
+        if (intrusionDuration <= 0) {
+          isIntrusionActive = false;
+          const last = telemetryHistory[telemetryHistory.length - 1];
+          last.trustScore = 95;
+          last.anomalyScore = 12.5;
+        }
+      } else {
+        // Self-correct back to baseline
+        const last = telemetryHistory[telemetryHistory.length - 1];
+        if (last.trustScore < 90) trustDiff += 1.5;
+        if (last.anomalyScore > 20) anomalyDiff -= 2.0;
+      }
+      
+      const last = telemetryHistory[telemetryHistory.length - 1];
+      const newTrust = Math.max(8, Math.min(100, last.trustScore + trustDiff));
+      const newEMA = last.ema * 0.92 + newTrust * 0.08;
+      
+      // Slow burn increases if trust is decaying slowly, or spikes in intrusion
+      let newSlowburn = last.slowBurn;
+      if (newTrust < 60) {
+        newSlowburn = Math.min(100, last.slowBurn + Math.random() * 8);
+      } else {
+        newSlowburn = Math.max(5, last.slowBurn - Math.random() * 3);
+      }
+      
+      const newAnomaly = Math.max(3, Math.min(100, last.anomalyScore + anomalyDiff));
+      if (newAnomaly > anomalyThreshold) {
+        breachCount++;
+      }
+
+      // Add to history
+      telemetryHistory.push({
+        time: new Date(),
+        trustScore: newTrust,
+        ema: newEMA,
+        slowBurn: newSlowburn,
+        anomalyScore: newAnomaly
+      });
+      
+      // Shift out old points
+      if (telemetryHistory.length > maxDataPoints) {
+        telemetryHistory.shift();
+      }
+
+      // Update basic status counters
+      document.getElementById('trust-percentage').innerText = `${Math.round(newTrust)}%`;
+      document.getElementById('trust-percentage').className = newTrust < 50 ? 'text-lg font-bold font-mono-data text-alert glow-alert' : 'text-lg font-bold font-mono-data text-acid glow-acid';
+      
+      document.getElementById('anomaly-value').innerText = newAnomaly.toFixed(1);
+      document.getElementById('anomaly-value').className = newAnomaly > anomalyThreshold ? 'text-lg font-bold font-mono-data text-alert glow-alert' : 'text-lg font-bold font-mono-data text-text';
+      
+      const anomalyAlertText = document.getElementById('status-anomaly-alert');
+      if (newAnomaly > anomalyThreshold) {
+        anomalyAlertText.innerText = "STATUS: BREACH EXCEEDED";
+        anomalyAlertText.className = "text-[10px] font-mono-data text-alert glow-alert font-bold animate-pulse";
+      } else {
+        anomalyAlertText.innerText = "STATUS: STEADY baseline";
+        anomalyAlertText.className = "text-[10px] font-mono-data text-muted";
+      }
+
+      const breachCountDisplay = document.getElementById('breach-count-display');
+      if (breachCountDisplay) breachCountDisplay.innerText = breachCount;
+      document.getElementById('matrix-stats-ema').innerText = newEMA.toFixed(1);
+      
+      const activeAnomalies = telemetryHistory.filter(d => d.anomalyScore > anomalyThreshold).length;
+      document.getElementById('matrix-active-anomalies').innerText = activeAnomalies;
+
+      // Update device status state and UI indicators
+      updateDeviceState();
+
+      // 3. Update D3 charts based on active tab
+      triggerRedraws();
+    }
+
+    function startSimulation() {
+      simTimer = setInterval(stepSimulation, simInterval);
+    }
+
+    // Chart Draw Dispatchers
+    function triggerRedraws() {
+      if (currentTab === 'overwatch') {
+        drawOverwatchCharts();
+      } else if (currentTab === 'matrix') {
+        drawMatrixCharts();
+      } else if (currentTab === 'zta') {
+        drawZtaCharts();
+      }
+    }
+
+    // D3 Helper: get color definitions based on theme variables
+    function getThemeColor(variableName) {
+      return getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
+    }
+
+    // ==========================================
+    // D3 CHARTS IMPLEMENTATION
+    // ==========================================
+
+    // Chart 1 & 2: Overwatch Console Charts
+    function drawOverwatchCharts() {
+      drawTrustPulseChart('chart-container-trust', false);
+      drawAnomalyLineChart('chart-container-anomaly', false);
+      drawMiniZtaSankey();
+    }
+
+    // Chart 3, 4, 5: Neural Trust Matrix View Charts
+    function drawMatrixCharts() {
+      drawTrustPulseChart('chart-container-large-trust', true);
+      drawEMAChart('chart-container-ema');
+      drawSlowburnChart('chart-container-slowburn');
+    }
+
+    // Chart 6, 7: ZTA View Charts
+    function drawZtaCharts() {
+      drawZtaSankey();
+    }
+
+    // D3 Trust Spline Chart Renderer (Shared by Overwatch & Matrix)
+    function drawTrustPulseChart(containerId, isLargeView) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = ""; // Clear
+      
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const margin = { top: 15, right: 15, bottom: 25, left: 35 };
+      
+      const svg = d3.select("#" + containerId)
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+      const chartWidth = width - margin.left - margin.right;
+      const chartHeight = height - margin.top - margin.bottom;
+      
+      const g = svg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      // Filter data if zoom selected
+      let data = telemetryHistory;
+      if (isLargeView && zoomSelection) {
+        const [x0, x1] = zoomSelection;
+        data = telemetryHistory.filter(d => d.time >= x0 && d.time <= x1);
+        if (data.length < 2) data = telemetryHistory; // Fallback
+      }
+
+      // X/Y Scales
+      const x = d3.scaleTime()
+        .domain(d3.extent(data, d => d.time))
+        .range([0, chartWidth]);
+
+      const y = d3.scaleLinear()
+        .domain([0, 100])
+        .range([chartHeight, 0]);
+
+      // Gradients (Green to Orange)
+      const gradId = `grad-trust-${containerId}`;
+      const gradient = svg.append("defs")
+        .append("linearGradient")
+        .attr("id", gradId)
+        .attr("x1", "0%").attr("y1", "0%")
+        .attr("x2", "0%").attr("y2", "100%");
+
+      // Acid green at top, Cyan in middle, Orange at bottom
+      gradient.append("stop").attr("offset", "0%").attr("stop-color", getThemeColor('--color-acid')).attr("stop-opacity", 0.4);
+      gradient.append("stop").attr("offset", "50%").attr("stop-color", getThemeColor('--color-primary')).attr("stop-opacity", 0.2);
+      gradient.append("stop").attr("offset", "100%").attr("stop-color", getThemeColor('--color-alert')).attr("stop-opacity", 0.6);
+
+      // Gridlines
+      g.append("g")
+        .attr("class", "grid")
+        .attr("stroke", getThemeColor('--color-border'))
+        .attr("stroke-opacity", 0.25)
+        .call(d3.axisLeft(y).tickSize(-chartWidth).tickFormat(""));
+        
+      g.append("g")
+        .attr("class", "grid")
+        .attr("stroke", getThemeColor('--color-border'))
+        .attr("stroke-opacity", 0.25)
+        .attr("transform", `translate(0,${chartHeight})`)
+        .call(d3.axisBottom(x).tickSize(-chartHeight).tickFormat(""));
+
+      // Line / Area Spline Generators
+      const area = d3.area()
+        .x(d => x(d.time))
+        .y0(chartHeight)
+        .y1(d => y(d.trustScore))
+        .curve(d3.curveMonotoneX);
+
+      const line = d3.line()
+        .x(d => x(d.time))
+        .y(d => y(d.trustScore))
+        .curve(d3.curveMonotoneX);
+
+      // Area Path
+      g.append("path")
+        .datum(data)
+        .attr("fill", `url(#${gradId})`)
+        .attr("d", area);
+
+      // Line Path
+      g.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", getThemeColor('--color-primary'))
+        .attr("stroke-width", 2)
+        .attr("class", "glow-cyan")
+        .attr("d", line);
+
+      // Draw Axes
+      const xAxis = d3.axisBottom(x).ticks(isLargeView ? 8 : 4).tickFormat(d3.timeFormat("%H:%M:%S"));
+      const yAxis = d3.axisLeft(y).ticks(5);
+
+      g.append("g")
+        .attr("transform", `translate(0,${chartHeight})`)
+        .attr("font-family", getThemeColor('--font-mono'))
+        .attr("font-size", "9px")
+        .attr("color", getThemeColor('--color-muted'))
+        .call(xAxis);
+
+      g.append("g")
+        .attr("font-family", getThemeColor('--font-mono'))
+        .attr("font-size", "9px")
+        .attr("color", getThemeColor('--color-muted'))
+        .call(yAxis);
+
+      // Hover Crosshair Interactions
+      const focus = g.append("g")
+        .attr("class", "focus")
+        .style("display", "none");
+
+      focus.append("line")
+        .attr("class", "x-hover-line")
+        .attr("stroke", getThemeColor('--color-primary'))
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "3,3")
+        .attr("y1", 0)
+        .attr("y2", chartHeight);
+
+      focus.append("circle")
+        .attr("r", 4)
+        .attr("fill", getThemeColor('--color-primary'))
+        .attr("stroke", getThemeColor('--color-text'))
+        .attr("stroke-width", 1);
+
+      // Interaction Overlay
+      svg.append("rect")
+        .attr("transform", `translate(${margin.left},${margin.top})`)
+        .attr("width", chartWidth)
+        .attr("height", chartHeight)
+        .attr("fill", "none")
+        .attr("pointer-events", "all")
+        .on("mouseover", () => focus.style("display", null))
+        .on("mouseout", () => {
+          focus.style("display", "none");
+          d3.select("#d3-tooltip").style("opacity", 0);
+        })
+        .on("mousemove", mousemove);
+
+      const bisectDate = d3.bisector(d => d.time).left;
+
+      function mousemove(event) {
+        const x0 = x.invert(d3.pointer(event)[0]);
+        const i = bisectDate(data, x0, 1);
+        const d0 = data[i - 1];
+        const d1 = data[i];
+        if (!d0 || !d1) return;
+        const d = x0 - d0.time > d1.time - x0 ? d1 : d0;
+        
+        focus.attr("transform", `translate(${x(d.time)},${y(d.trustScore)})`);
+        focus.select(".x-hover-line").attr("y2", chartHeight - y(d.trustScore));
+
+        // Tooltip position
+        const matrix = svg.node().getBoundingClientRect();
+        d3.select("#d3-tooltip")
+          .style("opacity", 0.95)
+          .style("left", (event.clientX + 15) + "px")
+          .style("top", (event.clientY - 15) + "px")
+          .html(`
+            <div class="text-primary font-bold">TRUST SCORE</div>
+            <div>Time: ${formatTime(d.time)}</div>
+            <div>Value: <span class="font-bold">${d.trustScore.toFixed(1)}%</span></div>
+          `);
+      }
+
+      // Synchronized Brush zoom (only on Matrix main view)
+      if (isLargeView) {
+        const brush = d3.brushX()
+          .extent([[0, 0], [chartWidth, chartHeight]])
+          .on("end", brushed);
+
+        g.append("g")
+          .attr("class", "brush")
+          .call(brush);
+
+        function brushed(event) {
+          const selection = event.selection;
+          if (selection) {
+            zoomSelection = [x.invert(selection[0]), x.invert(selection[1])];
+            g.select(".brush").call(brush.move, null); // Clear brush overlay
+          } else {
+            zoomSelection = null; // zoom out on single click
+          }
+          drawMatrixCharts(); // Sync all three plots
+        }
+      }
+    }
+
+    // D3 Anomaly Line Chart Renderer (Shared by Overwatch & ZTA Slider views)
+    function drawAnomalyLineChart(containerId, isInteractiveSliderView) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = "";
+
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const margin = { top: 15, right: 15, bottom: 25, left: 35 };
+
+      const svg = d3.select("#" + containerId)
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+      const chartWidth = width - margin.left - margin.right;
+      const chartHeight = height - margin.top - margin.bottom;
+
+      const g = svg.append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const x = d3.scaleTime()
+        .domain(d3.extent(telemetryHistory, d => d.time))
+        .range([0, chartWidth]);
+
+      const y = d3.scaleLinear()
+        .domain([0, 100])
+        .range([chartHeight, 0]);
+
+      // Gridlines
+      g.append("g")
+        .attr("stroke", getThemeColor('--color-border'))
+        .attr("stroke-opacity", 0.15)
+        .call(d3.axisLeft(y).tickSize(-chartWidth).tickFormat(""));
+
+      // Standard Anomaly Score Line
+      const line = d3.line()
+        .x(d => x(d.time))
+        .y(d => y(d.anomalyScore))
+        .curve(d3.curveMonotoneX);
+
+      g.append("path")
+        .datum(telemetryHistory)
+        .attr("fill", "none")
+        .attr("stroke", getThemeColor('--color-primary'))
+        .attr("stroke-width", 2)
+        .attr("class", "glow-cyan")
+        .attr("d", line);
+
+      // Filter breached points to overlay a warning glow path
+      const breachPoints = telemetryHistory.filter(d => d.anomalyScore > anomalyThreshold);
+      
+      // Draw intersecting glow markers for breaches
+      g.selectAll(".breach-dot")
+        .data(breachPoints)
+        .enter()
+        .append("circle")
+        .attr("cx", d => x(d.time))
+        .attr("cy", d => y(d.anomalyScore))
+        .attr("r", 4)
+        .attr("fill", getThemeColor('--color-alert'))
+        .attr("class", "glow-alert");
+
+      // Draw red dashed Threshold Line
+      g.append("line")
+        .attr("x1", 0)
+        .attr("y1", y(anomalyThreshold))
+        .attr("x2", chartWidth)
+        .attr("y2", y(anomalyThreshold))
+        .attr("stroke", getThemeColor('--color-alert'))
+        .attr("stroke-width", 1.5)
+        .attr("stroke-dasharray", "4,4")
+        .attr("class", "glow-alert");
+
+      // Draw Axes
+      g.append("g")
+        .attr("transform", `translate(0,${chartHeight})`)
+        .attr("font-family", getThemeColor('--font-mono'))
+        .attr("font-size", "9px")
+        .attr("color", getThemeColor('--color-muted'))
+        .call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
+
+      g.append("g")
+        .attr("font-family", getThemeColor('--font-mono'))
+        .attr("font-size", "9px")
+        .attr("color", getThemeColor('--color-muted'))
+        .call(d3.axisLeft(y).ticks(5));
+    }
+
+    // D3 EMA Plot (Matrix view bottom-left)
+    function drawEMAChart(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = "";
+
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const margin = { top: 15, right: 15, bottom: 25, left: 35 };
+
+      const svg = d3.select("#" + containerId).append("svg").attr("width", width).attr("height", height);
+      const chartWidth = width - margin.left - margin.right;
+      const chartHeight = height - margin.top - margin.bottom;
+
+      const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+      let data = telemetryHistory;
+      if (zoomSelection) {
+        const [x0, x1] = zoomSelection;
+        data = telemetryHistory.filter(d => d.time >= x0 && d.time <= x1);
+        if (data.length < 2) data = telemetryHistory;
+      }
+
+      const x = d3.scaleTime().domain(d3.extent(data, d => d.time)).range([0, chartWidth]);
+      const y = d3.scaleLinear().domain([0, 100]).range([chartHeight, 0]);
+
+      // Grids
+      g.append("g").attr("stroke", getThemeColor('--color-border')).attr("stroke-opacity", 0.1).call(d3.axisLeft(y).tickSize(-chartWidth).tickFormat(""));
+
+      const line = d3.line().x(d => x(d.time)).y(d => y(d.ema)).curve(d3.curveBasis);
+
+      g.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", getThemeColor('--color-primary'))
+        .attr("stroke-width", 2)
+        .attr("class", "glow-cyan")
+        .attr("d", line);
+
+      // Axes
+      g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
+      g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisLeft(y).ticks(5));
+    }
+
+    // D3 Slow-burn Step Chart (Matrix view bottom-right)
+    function drawSlowburnChart(containerId) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = "";
+
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const margin = { top: 15, right: 15, bottom: 25, left: 35 };
+
+      const svg = d3.select("#" + containerId).append("svg").attr("width", width).attr("height", height);
+      const chartWidth = width - margin.left - margin.right;
+      const chartHeight = height - margin.top - margin.bottom;
+
+      const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+      let data = telemetryHistory;
+      if (zoomSelection) {
+        const [x0, x1] = zoomSelection;
+        data = telemetryHistory.filter(d => d.time >= x0 && d.time <= x1);
+        if (data.length < 2) data = telemetryHistory;
+      }
+
+      const x = d3.scaleTime().domain(d3.extent(data, d => d.time)).range([0, chartWidth]);
+      const y = d3.scaleLinear().domain([0, 100]).range([chartHeight, 0]);
+
+      // Grids
+      g.append("g").attr("stroke", getThemeColor('--color-border')).attr("stroke-opacity", 0.1).call(d3.axisLeft(y).tickSize(-chartWidth).tickFormat(""));
+
+      // Step Area Generator
+      const area = d3.area().x(d => x(d.time)).y0(chartHeight).y1(d => y(d.slowBurn)).curve(d3.curveStepAfter);
+
+      g.append("path")
+        .datum(data)
+        .attr("fill", getThemeColor('--color-acid'))
+        .attr("fill-opacity", 0.15)
+        .attr("d", area);
+
+      const line = d3.line().x(d => x(d.time)).y(d => y(d.slowBurn)).curve(d3.curveStepAfter);
+
+      g.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", getThemeColor('--color-acid'))
+        .attr("stroke-width", 1.5)
+        .attr("class", "glow-acid")
+        .attr("d", line);
+
+      // Axes
+      g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
+      g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisLeft(y).ticks(5));
+    }
+
+    // Mini Sankey Diagram Generator (Overwatch right panel)
+    function drawMiniZtaSankey() {
+      const containerId = 'chart-container-mini-zta';
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = "";
+
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const svg = d3.select("#" + containerId).append("svg").attr("width", width).attr("height", height);
+
+      // Simple node locations
+      const nodes = [
+        { name: "LAN", x: 20, y: height/4, col: 0 },
+        { name: "WAN", x: 20, y: height * 3/4, col: 0 },
+        { name: "ZTA", x: width/2, y: height/2, col: 1 },
+        { name: "ALLOW", x: width - 50, y: height/4, col: 2, color: getThemeColor('--color-status-allow') },
+        { name: "BLOCK", x: width - 50, y: height * 3/4, col: 2, color: getThemeColor('--color-status-blocked') }
+      ];
+
+      let blockCount = 2;
+      let allowCount = 25;
+
+      if (currentDeviceState === 'block') {
+        blockCount = 28;
+        allowCount = 0;
+      } else if (currentDeviceState === 'verify') {
+        blockCount = 10;
+        allowCount = 12;
+      } else {
+        blockCount = isIntrusionActive ? 15 : 2;
+        allowCount = isIntrusionActive ? 5 : 25;
+      }
+
+      const links = [
+        { source: nodes[0], target: nodes[2], value: 12, blocked: currentDeviceState === 'block' },
+        { source: nodes[1], target: nodes[2], value: 8, blocked: currentDeviceState === 'block' || isIntrusionActive },
+        { source: nodes[2], target: nodes[3], value: allowCount, blocked: false },
+        { source: nodes[2], target: nodes[4], value: blockCount, blocked: true }
+      ];
+
+      // Draw Links
+      svg.selectAll(".link")
+        .data(links)
+        .enter()
+        .append("path")
+        .attr("d", d => {
+          const x0 = d.source.x + 10;
+          const y0 = d.source.y;
+          const x1 = d.target.x - 10;
+          const y1 = d.target.y;
+          const xi = d3.interpolateNumber(x0, x1);
+          const x2 = xi(0.5);
+          return `M${x0},${y0} C${x2},${y0} ${x2},${y1} ${x1},${y1}`;
+        })
+        .attr("fill", "none")
+        .attr("stroke", d => d.blocked ? getThemeColor('--color-status-blocked') : getThemeColor('--color-muted'))
+        .attr("stroke-opacity", d => d.blocked ? 0.7 : 0.25)
+        .attr("stroke-width", d => Math.max(1.5, Math.min(8, d.value / 3)))
+        .attr("class", d => d.blocked ? "glow-status-blocked" : "");
+
+      // Draw Nodes
+      const nodeG = svg.selectAll(".node")
+        .data(nodes)
+        .enter()
+        .append("g")
+        .attr("transform", d => `translate(${d.x - 8},${d.y - 12})`);
+
+      nodeG.append("rect")
+        .attr("width", 16)
+        .attr("height", 24)
+        .attr("fill", d => d.color || getThemeColor('--color-surface'))
+        .attr("stroke", d => d.color || getThemeColor('--color-border'))
+        .attr("stroke-width", 1);
+
+      nodeG.append("text")
+        .attr("x", d => d.col === 0 ? -6 : (d.col === 2 ? 22 : 8))
+        .attr("y", 16)
+        .attr("text-anchor", d => d.col === 0 ? "end" : (d.col === 2 ? "start" : "middle"))
+        .attr("font-family", getThemeColor('--font-mono'))
+        .attr("font-size", "9px")
+        .attr("fill", getThemeColor('--color-text'))
+        .text(d => d.name);
+    }
+
+    // Full Sankey Diagram Generator (ZTA Decision view)
+    function drawZtaSankey() {
+      const containerId = 'chart-container-sankey';
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = "";
+
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const svg = d3.select("#" + containerId).append("svg").attr("width", width).attr("height", height);
+
+      // 4 Columns of Nodes
+      const cols = 4;
+      const colWidth = width / (cols + 0.5);
+
+      const nodes = [
+        // Column 0: Source Subnets
+        { id: 0, name: "DMZ_10.15.2.0", col: 0, y: height * 0.2 },
+        { id: 1, name: "VPN_172.16.80.0", col: 0, y: height * 0.5 },
+        { id: 2, name: "LAN_192.168.10.0", col: 0, y: height * 0.8 },
+        // Column 1: Identity/Auth Group
+        { id: 3, name: "System accounts", col: 1, y: height * 0.25 },
+        { id: 4, name: "Staff users", col: 1, y: height * 0.5 },
+        { id: 5, name: "External contractors", col: 1, y: height * 0.75 },
+        // Column 2: Requested Action
+        { id: 6, name: "REST API Read", col: 2, y: height * 0.2 },
+        { id: 7, name: "SQL DB Query", col: 2, y: height * 0.5 },
+        { id: 8, name: "RDP Console Login", col: 2, y: height * 0.8 },
+        // Column 3: ZTA Verdict
+        { id: 9, name: "APPROVED FLOWS", col: 3, y: height * 0.3, color: getThemeColor('--color-status-allow') },
+        { id: 10, name: "BLOCKED ANOMALIES", col: 3, y: height * 0.7, color: getThemeColor('--color-status-blocked') }
+      ];
+
+      // Calculate exact nodes absolute layout
+      nodes.forEach(n => {
+        n.x = n.col * colWidth + 50;
+      });
+
+      // Construct links flow links
+      const flowBlockedOdds = currentDeviceState === 'block' ? 1.0 : (currentDeviceState === 'verify' ? 0.45 : (isIntrusionActive ? 0.7 : 0.12));
+
+      const links = [
+        // Col 0 -> Col 1
+        { source: 0, target: 5, value: 140, blocked: Math.random() < flowBlockedOdds, srcIp: "10.15.2.14", size: "3.5 KB" },
+        { source: 1, target: 4, value: 250, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "172.16.80.44", size: "24.1 KB" },
+        { source: 2, target: 3, value: 410, blocked: currentDeviceState === 'block', srcIp: "192.168.10.8", size: "128.4 KB" },
+        { source: 2, target: 4, value: 180, blocked: currentDeviceState === 'block', srcIp: "192.168.10.155", size: "5.2 KB" },
+
+        // Col 1 -> Col 2
+        { source: 3, target: 6, value: 200, blocked: currentDeviceState === 'block', srcIp: "192.168.10.8", size: "12.4 KB" },
+        { source: 4, target: 7, value: 310, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "172.16.80.44", size: "45.0 KB" },
+        { source: 5, target: 8, value: 120, blocked: Math.random() < flowBlockedOdds, srcIp: "10.15.2.14", size: "12.0 KB" },
+        { source: 4, target: 6, value: 150, blocked: currentDeviceState === 'block', srcIp: "192.168.10.155", size: "128 KB" },
+
+        // Col 2 -> Col 3
+        { source: 6, target: currentDeviceState === 'block' ? 10 : 9, value: 310, blocked: currentDeviceState === 'block', srcIp: "192.168.10.8", size: "140 KB" },
+        { source: 7, target: currentDeviceState === 'block' ? 10 : 9, value: 240, blocked: currentDeviceState === 'block', srcIp: "192.168.10.155", size: "3.5 KB" },
+        { source: 7, target: 10, value: 120, blocked: true, srcIp: "172.16.80.44", size: "24.1 KB" },
+        { source: 8, target: 10, value: 110, blocked: true, srcIp: "10.15.2.14", size: "12.0 KB" }
+      ];
+
+      // Draw Links (Bezier paths)
+      const linkPaths = svg.selectAll(".link")
+        .data(links)
+        .enter()
+        .append("path")
+        .attr("d", d => {
+          const s = nodes[d.source];
+          const t = nodes[d.target];
+          const x0 = s.x + 20;
+          const y0 = s.y;
+          const x1 = t.x - 20;
+          const y1 = t.y;
+          const xi = d3.interpolateNumber(x0, x1);
+          const x2 = xi(0.4);
+          const x3 = xi(0.6);
+          return `M${x0},${y0} C${x2},${y0} ${x3},${y1} ${x1},${y1}`;
+        })
+        .attr("fill", "none")
+        .attr("stroke", d => d.blocked ? getThemeColor('--color-status-blocked') : getThemeColor('--color-border'))
+        .attr("stroke-opacity", d => d.blocked ? 0.8 : 0.3)
+        .attr("stroke-width", d => Math.max(2, Math.min(15, d.value / 25)))
+        .attr("class", d => d.blocked ? "glow-status-blocked cursor-pointer transition-all duration-150" : "cursor-pointer transition-all duration-150")
+        .on("mouseover", function(event, d) {
+          // Highlight hover path, fade others
+          d3.selectAll("path").style("opacity", 0.1);
+          d3.select(this).style("opacity", 1.0).attr("stroke-width", Math.max(3, Math.min(18, d.value / 20)));
+          
+          d3.select("#d3-tooltip")
+            .style("opacity", 0.95)
+            .style("left", (event.clientX + 15) + "px")
+            .style("top", (event.clientY - 15) + "px")
+            .html(`
+              <div class="font-bold text-primary mb-1">ZTA TELEMETRY LINK</div>
+              <div>Source IP: <span class="font-bold text-text">${d.srcIp}</span></div>
+              <div>Payload: <span class="font-semibold text-text">${d.size}</span></div>
+              <div>Status: <span class="font-bold ${d.blocked ? 'text-blocked' : 'text-allow'}">${d.blocked ? 'BLOCKED Anomaly' : 'APPROVED'}</span></div>
+            `);
+        })
+        .on("mouseout", function() {
+          d3.selectAll("path").style("opacity", null);
+          d3.select(this).attr("stroke-width", d => Math.max(2, Math.min(15, d.value / 25)));
+          d3.select("#d3-tooltip").style("opacity", 0);
+        });
+
+      // Draw Nodes
+      const nodeG = svg.selectAll(".node")
+        .data(nodes)
+        .enter()
+        .append("g")
+        .attr("transform", d => `translate(${d.x - 15},${d.y - 20})`);
+
+      nodeG.append("rect")
+        .attr("width", 30)
+        .attr("height", 40)
+        .attr("fill", d => d.color || getThemeColor('--color-surface'))
+        .attr("stroke", d => d.color || getThemeColor('--color-border'))
+        .attr("stroke-width", 1.5)
+        .attr("class", d => d.color ? (d.color === getThemeColor('--color-alert') ? "glow-alert" : "glow-acid") : "");
+
+      nodeG.append("text")
+        .attr("x", 15)
+        .attr("y", -6)
+        .attr("text-anchor", "middle")
+        .attr("font-family", getThemeColor('--font-mono'))
+        .attr("font-size", "9px")
+        .attr("fill", getThemeColor('--color-text'))
+        .text(d => d.name);
+    }
+
+    // ==========================================
+    // INITIALIZATION & EVENT LISTENERS
+    // ==========================================
+
+    window.addEventListener("resize", () => {
+      triggerRedraws();
+    });
+
+    // Start Simulation
+    startSimulation();
+    
+    // Initial draw
+    setTimeout(() => {
+      updateDeviceState();
+      lucide.createIcons();
+      triggerRedraws();
+    }, 200);
+
+  </script>
+</body>
+</html>
