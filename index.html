@@ -458,66 +458,42 @@
         </button>
       </div>
 
-      <!-- 5 columns -->
+      <!-- 3 columns -->
       <div class="flex-grow flex gap-4 overflow-hidden h-full">
-        <!-- Col 1: Network -->
+        <!-- Col 1: Trust History -->
         <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
-          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-net">
-            <span class="text-primary font-bold leading-tight">Edge Gateway &<br>Telemetry Ingestion</span>
+          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-trust">
+            <span class="text-primary font-bold leading-tight uppercase">Trust History</span>
             <div class="flex items-center gap-1.5">
-              <span class="text-muted text-[10px]" id="rate-stream-net">345 eps</span>
-              <button onclick="toggleStream('network')" class="p-1 hover:text-primary transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-net"></i></button>
+              <span class="text-muted text-[10px]" id="rate-stream-trust">LOADING...</span>
+              <button onclick="toggleStream('trust')" class="p-1 hover:text-primary transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-trust"></i></button>
             </div>
           </div>
-          <div id="stream-network" onscroll="handleStreamScroll('network', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
+          <div id="stream-trust" onscroll="handleStreamScroll('trust', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
         </div>
 
-        <!-- Col 2: Auth -->
+        <!-- Col 2: Decision History -->
         <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
-          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-auth">
-            <span class="text-acid font-bold leading-tight">ML Anomaly<br>Detection Engine</span>
+          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-decision">
+            <span class="text-acid font-bold leading-tight uppercase">Decision History</span>
             <div class="flex items-center gap-1.5">
-              <span class="text-muted text-[10px]" id="rate-stream-auth">82 eps</span>
-              <button onclick="toggleStream('auth')" class="p-1 hover:text-acid transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-auth"></i></button>
+              <span class="text-muted text-[10px]" id="rate-stream-decision">LOADING...</span>
+              <button onclick="toggleStream('decision')" class="p-1 hover:text-acid transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-decision"></i></button>
             </div>
           </div>
-          <div id="stream-auth" onscroll="handleStreamScroll('auth', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
+          <div id="stream-decision" onscroll="handleStreamScroll('decision', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
         </div>
 
-        <!-- Col 3: App -->
+        <!-- Col 3: Live API Stream -->
         <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
-          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-app">
-            <span class="text-primary font-bold leading-tight">Dynamic Trust<br>Calibration Engine</span>
+          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-live">
+            <span class="text-alert font-bold leading-tight uppercase">Live API Stream</span>
             <div class="flex items-center gap-1.5">
-              <span class="text-muted text-[10px]" id="rate-stream-app">180 eps</span>
-              <button onclick="toggleStream('app')" class="p-1 hover:text-primary transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-app"></i></button>
+              <span class="text-muted text-[10px]" id="rate-stream-live">POLLING</span>
+              <button onclick="toggleStream('live')" class="p-1 hover:text-alert transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-live"></i></button>
             </div>
           </div>
-          <div id="stream-app" onscroll="handleStreamScroll('app', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
-        </div>
-
-        <!-- Col 4: System -->
-        <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel">
-          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-sys">
-            <span class="text-text font-bold leading-tight">Adaptive Access<br>Control Engine</span>
-            <div class="flex items-center gap-1.5">
-              <span class="text-muted text-[10px]" id="rate-stream-sys">415 eps</span>
-              <button onclick="toggleStream('system')" class="p-1 hover:text-muted transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-sys"></i></button>
-            </div>
-          </div>
-          <div id="stream-system" onscroll="handleStreamScroll('system', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
-        </div>
-
-        <!-- Col 5: Security -->
-        <div class="flex-1 flex flex-col h-full overflow-hidden cyber-panel" id="stream-panel-sec">
-          <div class="h-14 border-b border-bordercol px-3 flex items-center justify-between bg-surface/50 shrink-0 font-mono-data text-xs" id="header-stream-sec">
-            <span class="text-alert font-bold leading-tight">SECURITY EVENTS</span>
-            <div class="flex items-center gap-1.5">
-              <span class="text-muted text-[10px]" id="rate-stream-sec">8 eps</span>
-              <button onclick="toggleStream('security')" class="p-1 hover:text-alert transition"><i data-lucide="pause" class="w-3 h-3" id="icon-stream-sec"></i></button>
-            </div>
-          </div>
-          <div id="stream-security" onscroll="handleStreamScroll('security', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
+          <div id="stream-live" onscroll="handleStreamScroll('live', this)" class="flex-grow overflow-y-auto p-2 font-mono-data text-[11px] flex flex-col gap-1.5"></div>
         </div>
       </div>
     </div>
@@ -553,11 +529,9 @@
     
     // Log Streams Status
     const streamStatus = {
-      network: { active: true, eps: 345, timer: 0 },
-      auth: { active: true, eps: 82, timer: 0 },
-      app: { active: true, eps: 180, timer: 0 },
-      system: { active: true, eps: 415, timer: 0 },
-      security: { active: true, eps: 8, timer: 0 }
+      trust: { active: true, timer: 0 },
+      decision: { active: true, timer: 0 },
+      live: { active: true, timer: 0 }
     };
     
     // Data stores
@@ -922,81 +896,214 @@
       element.after(detailsDiv);
     }
 
-    // Simulation Data Generator
-    function generateLog(category, overrideIntrusion = false) {
-      const pool = (isIntrusionActive || overrideIntrusion) ? intrusionLogs[category] : logTemplates[category];
-      const template = pool[Math.floor(Math.random() * pool.length)];
-      
-      const timestamp = new Date();
-      const timeStr = formatTime(timestamp);
-      
-      // Format category tag html
-      let tagColor = "bg-primary text-background";
-      if (category === 'auth') tagColor = "bg-acid text-background";
-      if (category === 'security' || (isIntrusionActive && Math.random() > 0.4)) tagColor = "bg-alert text-background";
-      if (category === 'system') tagColor = "bg-bordercol text-muted border border-bordercol";
-      
-      // Update Stream panel
-      const streamContainer = document.getElementById('stream-' + category);
-      if (streamContainer && streamStatus[category].active) {
-        const row = document.createElement('div');
-        row.className = "log-row flex gap-2 items-start py-0.5 border-b border-bordercol/30 shrink-0";
-        row.onclick = () => expandLog(row, template.payload);
-        
-        row.innerHTML = `
-          <span class="text-muted shrink-0 select-none">${timeStr}</span>
-          <span class="px-1 font-bold ${tagColor} shrink-0 text-[9px] uppercase leading-none mt-0.5 tracking-wider">${category}</span>
-          <span class="text-text flex-grow truncate">${template.msg}</span>
-        `;
-        
-        streamContainer.appendChild(row);
-        
-        // Cap lines at 80
-        while (streamContainer.childElementCount > 80) {
-          streamContainer.removeChild(streamContainer.firstChild);
+    // Format timestamp from API (ISO format, e.g. 2026-07-18T11:48:40.265261)
+    function formatApiTime(timestampStr) {
+      try {
+        const d = new Date(timestampStr);
+        if (isNaN(d.getTime())) {
+          const parts = timestampStr.split('T');
+          if (parts.length > 1) {
+            return parts[1].substring(0, 12);
+          }
+          return timestampStr;
         }
-        // Auto scroll to bottom
-        streamContainer.scrollTop = streamContainer.scrollHeight;
+        let hh = String(d.getHours()).padStart(2, '0');
+        let mm = String(d.getMinutes()).padStart(2, '0');
+        let ss = String(d.getSeconds()).padStart(2, '0');
+        let ms = String(d.getMilliseconds()).padStart(3, '0');
+        return `${hh}:${mm}:${ss}.${ms}`;
+      } catch (e) {
+        return timestampStr;
       }
+    }
 
-      // Update Tickers on Overwatch View (Keep exactly 3)
-      const tickerContainer = document.getElementById('ticker-' + category);
-      if (tickerContainer) {
-        const item = document.createElement('div');
-        item.className = "truncate flex gap-1.5 py-0.5 border-b border-bordercol/20 cursor-pointer hover:text-text";
-        item.onclick = () => {
-          switchTab('telemetry');
-          // Wait for render then scroll
-          setTimeout(() => {
-            const rowInStream = Array.from(document.getElementById('stream-' + category).children).pop();
-            if (rowInStream) rowInStream.click();
-          }, 100);
-        };
-        item.innerHTML = `
-          <span class="text-muted shrink-0 text-[10px]">${timeStr.substring(0,8)}</span>
-          <span class="text-text truncate">${template.msg}</span>
-        `;
-        tickerContainer.appendChild(item);
+    // Real API Integration
+    async function fetchTrustHistory() {
+      try {
+        const response = await fetch('/api/trust-history');
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+        const data = await response.json();
         
-        if (tickerContainer.childElementCount > 3) {
-          tickerContainer.removeChild(tickerContainer.firstChild);
+        const container = document.getElementById('stream-trust');
+        if (container) {
+          container.innerHTML = '';
+          data.forEach(item => {
+            appendTrustLog(item, container);
+          });
+          const countBadge = document.getElementById('rate-stream-trust');
+          if (countBadge) countBadge.innerText = `${data.length} logs`;
         }
+      } catch (error) {
+        console.error('Error fetching trust history:', error);
+        showStreamError('trust', error.message);
       }
+    }
+
+    async function fetchDecisionHistory() {
+      try {
+        const response = await fetch('/api/decision-history');
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+        const data = await response.json();
+        
+        const container = document.getElementById('stream-decision');
+        if (container) {
+          container.innerHTML = '';
+          data.forEach(item => {
+            appendDecisionLog(item, container);
+          });
+          const countBadge = document.getElementById('rate-stream-decision');
+          if (countBadge) countBadge.innerText = `${data.length} logs`;
+        }
+      } catch (error) {
+        console.error('Error fetching decision history:', error);
+        showStreamError('decision', error.message);
+      }
+    }
+
+    let lastLiveTimestamp = null;
+    
+    async function pollLiveApi() {
+      if (!streamStatus.live.active) return;
+      try {
+        const response = await fetch('/api/live');
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+        const item = await response.json();
+        
+        if (item.timestamp !== lastLiveTimestamp) {
+          lastLiveTimestamp = item.timestamp;
+          const container = document.getElementById('stream-live');
+          if (container) {
+            appendLiveLog(item, container);
+            
+            const statusBadge = document.getElementById('rate-stream-live');
+            if (statusBadge) {
+              statusBadge.innerText = 'UPDATED';
+              statusBadge.classList.add('text-alert');
+              setTimeout(() => {
+                if (statusBadge) {
+                  statusBadge.innerText = 'POLLING';
+                  statusBadge.classList.remove('text-alert');
+                }
+              }, 1000);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error polling live API:', error);
+        const statusBadge = document.getElementById('rate-stream-live');
+        if (statusBadge) statusBadge.innerText = 'CONN_ERR';
+      }
+    }
+
+    function appendTrustLog(item, container) {
+      const timeStr = formatApiTime(item.timestamp);
+      const row = document.createElement('div');
+      row.className = "log-row flex gap-2 items-start py-0.5 border-b border-bordercol/30 shrink-0 cursor-pointer hover:bg-surface/30 transition";
+      row.onclick = () => expandLog(row, item);
+      
+      const tagColor = "bg-primary/20 text-primary border border-primary/30";
+      row.innerHTML = `
+        <span class="text-muted shrink-0 select-none font-mono-data">${timeStr}</span>
+        <span class="px-1.5 font-bold ${tagColor} shrink-0 text-[9px] uppercase leading-none mt-0.5 tracking-wider font-mono-data">TRUST</span>
+        <span class="text-text flex-grow truncate font-mono-data">Device: <span class="text-primary">${item.device_id}</span> | Trust: <span class="font-bold text-acid">${item.trust_after.toFixed(2)}</span> (Anomaly: ${item.anomaly_score.toFixed(3)}, Slow Burn: ${item.slow_burn_score.toFixed(1)})</span>
+      `;
+      
+      container.appendChild(row);
+      while (container.childElementCount > 80) {
+        container.removeChild(container.firstChild);
+      }
+      if (streamStatus.trust.active) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    function appendDecisionLog(item, container) {
+      const timeStr = formatApiTime(item.timestamp);
+      const row = document.createElement('div');
+      row.className = "log-row flex gap-2 items-start py-0.5 border-b border-bordercol/30 shrink-0 cursor-pointer hover:bg-surface/30 transition";
+      row.onclick = () => expandLog(row, item);
+      
+      let tagColor = "bg-bordercol/20 text-text border border-bordercol/30";
+      let decisionClass = "text-text";
+      if (item.decision === 'ALLOW') {
+        tagColor = "bg-acid/20 text-acid border border-acid/30";
+        decisionClass = "text-acid font-bold";
+      } else if (item.decision === 'VERIFY') {
+        tagColor = "bg-yellow-500/20 text-yellow-500 border border-yellow-500/30";
+        decisionClass = "text-yellow-500 font-bold";
+      } else if (item.decision === 'BLOCK') {
+        tagColor = "bg-alert/20 text-alert border border-alert/30";
+        decisionClass = "text-alert font-bold";
+      }
+      
+      row.innerHTML = `
+        <span class="text-muted shrink-0 select-none font-mono-data">${timeStr}</span>
+        <span class="px-1.5 font-bold ${tagColor} shrink-0 text-[9px] uppercase leading-none mt-0.5 tracking-wider font-mono-data">DECISION</span>
+        <span class="text-text flex-grow truncate font-mono-data">Policy Action: <span class="${decisionClass}">${item.decision}</span></span>
+      `;
+      
+      container.appendChild(row);
+      while (container.childElementCount > 100) {
+        container.removeChild(container.firstChild);
+      }
+      if (streamStatus.decision.active) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    function appendLiveLog(item, container) {
+      const timeStr = formatApiTime(item.timestamp);
+      const row = document.createElement('div');
+      row.className = "log-row flex gap-2 items-start py-0.5 border-b border-bordercol/30 shrink-0 cursor-pointer hover:bg-surface/30 transition";
+      row.onclick = () => expandLog(row, item);
+      
+      let tagColor = "bg-alert/20 text-alert border border-alert/30";
+      let decisionClass = "text-text";
+      if (item.decision === 'ALLOW') {
+        decisionClass = "text-acid font-bold";
+      } else if (item.decision === 'VERIFY') {
+        decisionClass = "text-yellow-500 font-bold";
+      } else if (item.decision === 'BLOCK') {
+        decisionClass = "text-alert font-bold";
+      }
+      
+      row.innerHTML = `
+        <span class="text-muted shrink-0 select-none font-mono-data">${timeStr}</span>
+        <span class="px-1.5 font-bold ${tagColor} shrink-0 text-[9px] uppercase leading-none mt-0.5 tracking-wider font-mono-data">LIVE</span>
+        <span class="text-text flex-grow truncate font-mono-data">Dev: <span class="text-primary">${item.device_id}</span> | Action: <span class="${decisionClass}">${item.decision}</span> | Trust: <span class="text-acid">${item.trust_after.toFixed(2)}</span> | Anomaly: ${item.anomaly_score.toFixed(3)}</span>
+      `;
+      
+      container.appendChild(row);
+      while (container.childElementCount > 80) {
+        container.removeChild(container.firstChild);
+      }
+      if (streamStatus.live.active) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    function showStreamError(streamName, message) {
+      const container = document.getElementById('stream-' + streamName);
+      if (container) {
+        container.innerHTML = `
+          <div class="p-4 text-center font-mono-data text-xs text-alert border border-alert/20 bg-alert/5">
+            <i data-lucide="alert-triangle" class="w-5 h-5 mx-auto mb-2 text-alert"></i>
+            API FETCH FAILED: ${message}
+            <button onclick="retryFetch('${streamName}')" class="mt-2 block mx-auto px-2 py-1 bg-surface border border-bordercol text-text hover:border-alert transition">RETRY</button>
+          </div>
+        `;
+        lucide.createIcons();
+      }
+    }
+    
+    function retryFetch(streamName) {
+      if (streamName === 'trust') fetchTrustHistory();
+      if (streamName === 'decision') fetchDecisionHistory();
     }
 
     // Step Simulation
     function stepSimulation() {
-      // 1. Generate logs based on category EPS rates relative to speed
-      Object.keys(streamStatus).forEach(cat => {
-        // Randomly trigger events according to realistic weights
-        let odds = streamStatus[cat].eps / 1000;
-        if (simInterval === 200) odds *= 0.5; // Scale odds to fit faster cycle
-        if (simInterval === 1000) odds *= 2.0;
-        
-        if (Math.random() < odds || isIntrusionActive) {
-          generateLog(cat);
-        }
-      });
+      // 1. Live stream logs are fetched from real APIs; simulated log generation is disabled.
 
       // 2. Compute metrics
       let trustDiff = (Math.random() - 0.5) * 3;
@@ -1730,6 +1837,12 @@
       updateDeviceState();
       lucide.createIcons();
       triggerRedraws();
+      
+      // Initialize real API streams
+      fetchTrustHistory();
+      fetchDecisionHistory();
+      pollLiveApi();
+      setInterval(pollLiveApi, 2000);
     }, 200);
 
   </script>
