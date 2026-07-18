@@ -345,12 +345,7 @@
             <div class="col-span-2 border border-bordercol bg-background/50 p-2 flex items-center justify-between">
               <div class="flex flex-col">
                 <span class="text-muted text-[10px]">DEVICE STATE POLICY</span>
-                <select id="select-device-policy" onchange="changeDevicePolicy(this.value)" class="bg-transparent border-0 text-allow font-bold mt-0.5 outline-none cursor-pointer">
-                  <option value="auto" class="bg-surface text-allow" selected>AUTO (ZTA ENGINE)</option>
-                  <option value="allow" class="bg-surface text-allow">FORCE ACTIVE (GREEN)</option>
-                  <option value="verify" class="bg-surface text-verify">FORCE VERIFY (YELLOW)</option>
-                  <option value="block" class="bg-surface text-blocked">FORCE BLOCK (RED)</option>
-                </select>
+                <span id="select-device-policy" class="text-allow font-bold mt-0.5 font-mono-data">AUTO (ZTA ENGINE)</span>
               </div>
               <div class="flex items-center gap-1.5 border border-bordercol/50 bg-background/80 px-2 py-1">
                 <span id="control-status-dot" class="inline-block h-2 w-2 rounded-full bg-allow glow-status-allow"></span>
@@ -648,12 +643,7 @@
       triggerRedraws();
     }
 
-    // Device State Policy Management
-    function changeDevicePolicy(policy) {
-      devicePolicy = policy;
-      updateDeviceState();
-      triggerRedraws(); // Redraw D3 flows immediately to reflect policy overrides
-    }
+    // Device State Policy Management (Hardcoded to AUTO mode driven by the ZTA engine)
 
     function updateDeviceState() {
       let targetState = 'allow';
