@@ -318,8 +318,8 @@
         <!-- Mini ZTA Flow -->
         <div class="flex-grow cyber-panel p-4 flex flex-col min-h-[250px]">
           <div class="flex justify-between items-center mb-2 border-b border-bordercol pb-2">
-            <span class="text-xs font-mono-data font-bold tracking-widest text-muted">MINI ZTA DECISION FLOW</span>
-            <span class="text-[9px] font-mono-data text-muted">REAL-TIME FLOW PATHS</span>
+            <span class="text-xs font-mono-data font-bold tracking-widest text-muted">ZERO TRUST DECISION FLOW</span>
+            <span class="text-[9px] font-mono-data text-muted">DECISION TIMELINE</span>
           </div>
           <div class="flex-grow relative" id="chart-container-mini-zta">
             <!-- D3 Mini Sankey flow renders here -->
@@ -538,6 +538,7 @@
     // Data stores
     const maxDataPoints = 60;
     const telemetryHistory = []; // Chart timeline data
+    const decisionHistory = [];  // Decision history timeline data
     let breachCount = 0;
     
     // Historical data will be loaded from the Trust History API
@@ -944,6 +945,19 @@
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
         const data = await response.json();
         
+        // Populate global decisionHistory array with real data
+        decisionHistory.length = 0;
+        data.forEach(item => {
+          decisionHistory.push({
+            time: new Date(item.timestamp),
+            decision: item.decision,
+            value: item.decision === 'ALLOW' ? 3 : (item.decision === 'VERIFY' ? 2 : 1)
+          });
+        });
+        
+        // Redraw charts
+        triggerRedraws();
+        
         const container = document.getElementById('stream-decision');
         if (container) {
           container.innerHTML = '';
@@ -984,6 +998,16 @@
           // Cap at maxDataPoints (60)
           if (telemetryHistory.length > maxDataPoints) {
             telemetryHistory.shift();
+          }
+
+          // Push new live decision into decisionHistory
+          decisionHistory.push({
+            time: new Date(item.timestamp),
+            decision: item.decision,
+            value: item.decision === 'ALLOW' ? 3 : (item.decision === 'VERIFY' ? 2 : 1)
+          });
+          if (decisionHistory.length > 100) {
+            decisionHistory.shift();
           }
 
           // Update basic status counters
@@ -1270,7 +1294,7 @@
     function drawOverwatchCharts() {
       drawTrustPulseChart('chart-container-trust', false);
       drawAnomalyLineChart('chart-container-anomaly', false);
-      drawMiniZtaSankey();
+      drawDecisionTimelineChart('chart-container-mini-zta');
     }
 
     // Chart 3, 4, 5: Neural Trust Matrix View Charts
@@ -1770,89 +1794,111 @@
       g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisLeft(y).ticks(5));
     }
 
-    // Mini Sankey Diagram Generator (Overwatch right panel)
-    function drawMiniZtaSankey() {
-      const containerId = 'chart-container-mini-zta';
+    // D3 Zero Trust Decision Flow Timeline Chart
+    function drawDecisionTimelineChart(containerId) {
       const container = document.getElementById(containerId);
       if (!container) return;
       container.innerHTML = "";
 
       const width = container.clientWidth;
       const height = container.clientHeight;
+      const margin = { top: 15, right: 15, bottom: 25, left: 55 };
+
       const svg = d3.select("#" + containerId).append("svg").attr("width", width).attr("height", height);
+      const chartWidth = width - margin.left - margin.right;
+      const chartHeight = height - margin.top - margin.bottom;
 
-      // Simple node locations
-      const nodes = [
-        { name: "ESP32", x: 20, y: height/4, col: 0 },
-        { name: "WSL Gateway", x: 20, y: height * 3/4, col: 0 },
-        { name: "Azure VM", x: width/2, y: height/2, col: 1 },
-        { name: "ALLOW", x: width - 50, y: height/4, col: 2, color: getThemeColor('--color-status-allow') },
-        { name: "BLOCK", x: width - 50, y: height * 3/4, col: 2, color: getThemeColor('--color-status-blocked') }
-      ];
+      const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
 
-      let blockCount = 2;
-      let allowCount = 25;
-
-      if (currentDeviceState === 'block') {
-        blockCount = 28;
-        allowCount = 0;
-      } else if (currentDeviceState === 'verify') {
-        blockCount = 10;
-        allowCount = 12;
-      } else {
-        blockCount = isIntrusionActive ? 15 : 2;
-        allowCount = isIntrusionActive ? 5 : 25;
+      const data = decisionHistory;
+      if (data.length === 0) {
+        g.append("text")
+          .attr("x", chartWidth / 2)
+          .attr("y", chartHeight / 2)
+          .attr("text-anchor", "middle")
+          .attr("fill", getThemeColor('--color-muted'))
+          .attr("font-family", getThemeColor('--font-mono') || 'monospace')
+          .attr("font-size", "11px")
+          .text("NO DATA AVAILABLE");
+        return;
       }
 
-      const links = [
-        { source: nodes[0], target: nodes[2], value: 12, blocked: currentDeviceState === 'block' },
-        { source: nodes[1], target: nodes[2], value: 8, blocked: currentDeviceState === 'block' || isIntrusionActive },
-        { source: nodes[2], target: nodes[3], value: allowCount, blocked: false },
-        { source: nodes[2], target: nodes[4], value: blockCount, blocked: true }
-      ];
+      const x = d3.scaleTime()
+        .domain(d3.extent(data, d => d.time))
+        .range([0, chartWidth]);
 
-      // Draw Links
-      svg.selectAll(".link")
-        .data(links)
-        .enter()
-        .append("path")
-        .attr("d", d => {
-          const x0 = d.source.x + 10;
-          const y0 = d.source.y;
-          const x1 = d.target.x - 10;
-          const y1 = d.target.y;
-          const xi = d3.interpolateNumber(x0, x1);
-          const x2 = xi(0.5);
-          return `M${x0},${y0} C${x2},${y0} ${x2},${y1} ${x1},${y1}`;
-        })
+      const y = d3.scaleLinear()
+        .domain([0.7, 3.3])
+        .range([chartHeight, 0]);
+
+      g.append("g")
+        .attr("stroke", getThemeColor('--color-border'))
+        .attr("stroke-opacity", 0.1)
+        .call(d3.axisLeft(y).tickValues([1, 2, 3]).tickSize(-chartWidth).tickFormat(""));
+
+      const line = d3.line()
+        .x(d => x(d.time))
+        .y(d => y(d.value))
+        .curve(d3.curveStepAfter);
+
+      g.append("path")
+        .datum(data)
         .attr("fill", "none")
-        .attr("stroke", d => d.blocked ? getThemeColor('--color-status-blocked') : getThemeColor('--color-muted'))
-        .attr("stroke-opacity", d => d.blocked ? 0.7 : 0.25)
-        .attr("stroke-width", d => Math.max(1.5, Math.min(8, d.value / 3)))
-        .attr("class", d => d.blocked ? "glow-status-blocked" : "");
+        .attr("stroke", getThemeColor('--color-border'))
+        .attr("stroke-opacity", 0.4)
+        .attr("stroke-width", 1.5)
+        .attr("d", line);
 
-      // Draw Nodes
-      const nodeG = svg.selectAll(".node")
-        .data(nodes)
+      g.selectAll(".dot")
+        .data(data)
         .enter()
-        .append("g")
-        .attr("transform", d => `translate(${d.x - 8},${d.y - 12})`);
+        .append("circle")
+        .attr("class", "dot")
+        .attr("cx", d => x(d.time))
+        .attr("cy", d => y(d.value))
+        .attr("r", 3.5)
+        .attr("fill", d => {
+          if (d.decision === 'ALLOW') return getThemeColor('--color-acid') || '#B9FF66';
+          if (d.decision === 'VERIFY') return '#FF9F00';
+          return getThemeColor('--color-alert') || '#FF007F';
+        })
+        .attr("stroke", getThemeColor('--color-background'))
+        .attr("stroke-width", 1)
+        .attr("class", d => {
+          if (d.decision === 'ALLOW') return 'glow-acid';
+          if (d.decision === 'BLOCK') return 'glow-alert';
+          return '';
+        });
 
-      nodeG.append("rect")
-        .attr("width", 16)
-        .attr("height", 24)
-        .attr("fill", d => d.color || getThemeColor('--color-surface'))
-        .attr("stroke", d => d.color || getThemeColor('--color-border'))
-        .attr("stroke-width", 1);
+      const yAxis = d3.axisLeft(y)
+        .tickValues([1, 2, 3])
+        .tickFormat(d => {
+          if (d === 3) return "ALLOW";
+          if (d === 2) return "VERIFY";
+          if (d === 1) return "BLOCK";
+          return "";
+        });
 
-      nodeG.append("text")
-        .attr("x", d => d.col === 0 ? -6 : (d.col === 2 ? 22 : 8))
-        .attr("y", 16)
-        .attr("text-anchor", d => d.col === 0 ? "end" : (d.col === 2 ? "start" : "middle"))
-        .attr("font-family", getThemeColor('--font-mono'))
-        .attr("font-size", "9px")
-        .attr("fill", getThemeColor('--color-text'))
-        .text(d => d.name);
+      const yAxisG = g.append("g")
+        .attr("font-family", getThemeColor('--font-mono') || 'monospace')
+        .attr("font-size", "8px")
+        .attr("color", getThemeColor('--color-muted'))
+        .call(yAxis);
+
+      yAxisG.selectAll(".tick text")
+        .attr("fill", d => {
+          if (d === 3) return getThemeColor('--color-acid') || '#B9FF66';
+          if (d === 2) return '#FF9F00';
+          return getThemeColor('--color-alert') || '#FF007F';
+        })
+        .attr("font-weight", "bold");
+
+      g.append("g")
+        .attr("transform", `translate(0,${chartHeight})`)
+        .attr("font-family", getThemeColor('--font-mono') || 'monospace')
+        .attr("font-size", "8px")
+        .attr("color", getThemeColor('--color-muted'))
+        .call(d3.axisBottom(x).ticks(3).tickFormat(d3.timeFormat("%H:%M:%S")));
     }
 
     // Full Sankey Diagram Generator (ZTA Decision view)
