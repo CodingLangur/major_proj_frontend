@@ -410,8 +410,8 @@
         <div class="flex-1 flex gap-6 min-h-[180px]">
           <div class="flex-1 cyber-panel p-4 flex flex-col">
             <div class="flex justify-between text-xs font-mono-data text-muted mb-2 font-semibold">
-              <span>EXPONENTIAL MOVING AVERAGE (EMA) INDEX</span>
-              <span class="text-primary">2px Spline + shadow glow</span>
+              <span>THREAT CORRELATION MATRIX</span>
+              <span class="text-primary">Anomaly (magenta) vs EMA (cyan)</span>
             </div>
             <div class="flex-grow relative" id="chart-container-ema">
               <!-- D3 EMA Chart -->
@@ -1276,7 +1276,7 @@
     // Chart 3, 4, 5: Neural Trust Matrix View Charts
     function drawMatrixCharts() {
       drawTrustPulseChart('chart-container-large-trust', true);
-      drawEMAChart('chart-container-ema');
+      drawThreatCorrelationChart('chart-container-ema');
       drawSlowburnChart('chart-container-slowburn');
     }
 
@@ -1645,8 +1645,8 @@
         .call(d3.axisLeft(y).ticks(5));
     }
 
-    // D3 EMA Plot (Matrix view bottom-left)
-    function drawEMAChart(containerId) {
+    // D3 Threat Correlation Matrix Plot (Matrix view bottom-left)
+    function drawThreatCorrelationChart(containerId) {
       const container = document.getElementById(containerId);
       if (!container) return;
       container.innerHTML = "";
@@ -1674,15 +1674,43 @@
       // Grids
       g.append("g").attr("stroke", getThemeColor('--color-border')).attr("stroke-opacity", 0.1).call(d3.axisLeft(y).tickSize(-chartWidth).tickFormat(""));
 
-      const line = d3.line().x(d => x(d.time)).y(d => y(d.ema)).curve(d3.curveBasis);
+      // Line 1: Anomaly Score (Magenta)
+      const lineAnomaly = d3.line()
+        .x(d => x(d.time))
+        .y(d => y(d.anomalyScore))
+        .curve(d3.curveMonotoneX);
 
       g.append("path")
         .datum(data)
         .attr("fill", "none")
-        .attr("stroke", getThemeColor('--color-primary'))
+        .attr("stroke", getThemeColor('--color-alert') || '#FF007F')
+        .attr("stroke-width", 1.5)
+        .attr("class", "glow-alert")
+        .attr("d", lineAnomaly);
+
+      // Line 2: EMA Anomaly (Cyan)
+      const lineEma = d3.line()
+        .x(d => x(d.time))
+        .y(d => y(d.ema))
+        .curve(d3.curveMonotoneX);
+
+      g.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", getThemeColor('--color-primary') || '#00E5FF')
         .attr("stroke-width", 2)
         .attr("class", "glow-cyan")
-        .attr("d", line);
+        .attr("d", lineEma);
+
+      // Legend in top-left
+      const legend = g.append("g")
+        .attr("transform", "translate(10, 10)");
+
+      legend.append("circle").attr("cx", 0).attr("cy", 0).attr("r", 3).attr("fill", getThemeColor('--color-alert') || '#FF007F');
+      legend.append("text").attr("x", 8).attr("y", 3).attr("fill", getThemeColor('--color-muted')).attr("font-family", getThemeColor('--font-mono') || 'monospace').attr("font-size", "8px").text("ANOMALY");
+
+      legend.append("circle").attr("cx", 0).attr("cy", 12).attr("r", 3).attr("fill", getThemeColor('--color-primary') || '#00E5FF');
+      legend.append("text").attr("x", 8).attr("y", 15).attr("fill", getThemeColor('--color-muted')).attr("font-family", getThemeColor('--font-mono') || 'monospace').attr("font-size", "8px").text("EMA TREND");
 
       // Axes
       g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
