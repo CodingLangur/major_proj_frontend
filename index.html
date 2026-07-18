@@ -288,7 +288,7 @@
         <div class="flex-1 cyber-panel p-4 flex flex-col min-h-[220px]">
           <div class="flex justify-between items-center mb-2">
             <div class="flex items-center gap-2">
-              <span class="text-xs font-mono-data font-bold tracking-widest text-muted">GLOBAL TRUST PULSE</span>
+              <span class="text-xs font-mono-data font-bold tracking-widest text-muted">ADAPTIVE TRUST CALIBRATION</span>
               <span id="trust-percentage" class="text-lg font-bold font-mono-data text-acid glow-acid">94%</span>
             </div>
             <span class="text-[10px] font-mono-data text-muted">REAL-TIME ORGANIC SPLINE</span>
@@ -398,7 +398,7 @@
         <!-- Top Half: Large Trust Score Plot -->
         <div class="flex-1 cyber-panel p-4 flex flex-col min-h-[180px]">
           <div class="flex justify-between text-xs font-mono-data text-muted mb-2 font-semibold">
-            <span>TRUST DECAY SPLINE (DRAG MOUSE TO BRUSH & ZOOM ALL PLOTS)</span>
+            <span>ADAPTIVE TRUST CALIBRATION (DRAG MOUSE TO BRUSH & ZOOM ALL PLOTS)</span>
             <span class="text-primary font-bold">BRUSH & FILTER ENGINE</span>
           </div>
           <div class="flex-grow relative" id="chart-container-large-trust">
@@ -526,6 +526,7 @@
     let intrusionDuration = 0;
     let devicePolicy = 'auto';
     let currentDeviceState = 'allow';
+    let lastApiDecision = 'allow';
     
     // Log Streams Status
     const streamStatus = {
@@ -539,27 +540,7 @@
     const telemetryHistory = []; // Chart timeline data
     let breachCount = 0;
     
-    // Initialize mock historical data
-    let baseTime = Date.now() - (maxDataPoints * 5000);
-    let lastTrust = 94;
-    let lastEMA = 92;
-    let lastSlowburn = 12;
-    let lastAnomaly = 14;
-
-    for (let i = 0; i < maxDataPoints; i++) {
-      baseTime += 5000;
-      lastTrust = Math.max(10, Math.min(100, lastTrust + (Math.random() - 0.5) * 4));
-      lastEMA = lastEMA * 0.9 + lastTrust * 0.1;
-      lastSlowburn = Math.max(0, Math.min(100, lastSlowburn + (Math.random() - 0.4) * 5));
-      lastAnomaly = Math.max(2, Math.min(100, lastAnomaly + (Math.random() - 0.5) * 8));
-      telemetryHistory.push({
-        time: new Date(baseTime),
-        trustScore: lastTrust,
-        ema: lastEMA,
-        slowBurn: lastSlowburn,
-        anomalyScore: lastAnomaly
-      });
-    }
+    // Historical data will be loaded from the Trust History API
 
     // Dynamic zoom scales
     let zoomSelection = null;
@@ -677,14 +658,18 @@
       let targetState = 'allow';
       
       if (devicePolicy === 'auto') {
-        const lastData = telemetryHistory[telemetryHistory.length - 1];
-        if (lastData) {
-          if (isIntrusionActive || lastData.anomalyScore > anomalyThreshold) {
-            targetState = 'block';
-          } else if (lastData.anomalyScore > anomalyThreshold * 0.7 || lastData.trustScore < 65) {
-            targetState = 'verify';
-          } else {
-            targetState = 'allow';
+        if (typeof lastApiDecision !== 'undefined' && lastApiDecision !== null) {
+          targetState = lastApiDecision.toLowerCase();
+        } else {
+          const lastData = telemetryHistory[telemetryHistory.length - 1];
+          if (lastData) {
+            if (isIntrusionActive || lastData.anomalyScore > anomalyThreshold) {
+              targetState = 'block';
+            } else if (lastData.anomalyScore > anomalyThreshold * 0.7 || lastData.trustScore < 65) {
+              targetState = 'verify';
+            } else {
+              targetState = 'allow';
+            }
           }
         }
       } else {
@@ -771,7 +756,6 @@
     function changeSimSpeed(val) {
       simInterval = parseInt(val);
       clearInterval(simTimer);
-      startSimulation();
     }
 
     function updateThresholdValue(val) {
@@ -924,6 +908,21 @@
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
         const data = await response.json();
         
+        // Populate global telemetryHistory array with real data
+        telemetryHistory.length = 0;
+        data.forEach(item => {
+          telemetryHistory.push({
+            time: new Date(item.timestamp),
+            trustScore: item.trust_after * 100,
+            ema: item.ema_anomaly * 100,
+            slowBurn: item.slow_burn_score * 100,
+            anomalyScore: item.anomaly_score * 100
+          });
+        });
+        
+        // Redraw charts
+        triggerRedraws();
+        
         const container = document.getElementById('stream-trust');
         if (container) {
           container.innerHTML = '';
@@ -971,6 +970,62 @@
         
         if (item.timestamp !== lastLiveTimestamp) {
           lastLiveTimestamp = item.timestamp;
+          lastApiDecision = item.decision;
+          
+          // Push new live event into telemetryHistory
+          telemetryHistory.push({
+            time: new Date(item.timestamp),
+            trustScore: item.trust_after * 100,
+            ema: item.ema_anomaly * 100,
+            slowBurn: item.slow_burn_score * 100,
+            anomalyScore: item.anomaly_score * 100
+          });
+          
+          // Cap at maxDataPoints (60)
+          if (telemetryHistory.length > maxDataPoints) {
+            telemetryHistory.shift();
+          }
+
+          // Update basic status counters
+          const trustPct = item.trust_after * 100;
+          const trustText = document.getElementById('trust-percentage');
+          if (trustText) {
+            trustText.innerText = `${Math.round(trustPct)}%`;
+            trustText.className = trustPct < 50 ? 'text-lg font-bold font-mono-data text-alert glow-alert' : 'text-lg font-bold font-mono-data text-acid glow-acid';
+          }
+          
+          const newAnomalyVal = item.anomaly_score * 100;
+          const anomalyText = document.getElementById('anomaly-value');
+          if (anomalyText) {
+            anomalyText.innerText = newAnomalyVal.toFixed(1);
+            anomalyText.className = newAnomalyVal > anomalyThreshold ? 'text-lg font-bold font-mono-data text-alert glow-alert' : 'text-lg font-bold font-mono-data text-text';
+          }
+          
+          const anomalyAlertText = document.getElementById('status-anomaly-alert');
+          if (anomalyAlertText) {
+            if (newAnomalyVal > anomalyThreshold) {
+              anomalyAlertText.innerText = "STATUS: BREACH EXCEEDED";
+              anomalyAlertText.className = "text-[10px] font-mono-data text-alert glow-alert font-bold animate-pulse";
+            } else {
+              anomalyAlertText.innerText = "STATUS: STEADY baseline";
+              anomalyAlertText.className = "text-[10px] font-mono-data text-muted";
+            }
+          }
+
+          const matrixEmaText = document.getElementById('matrix-stats-ema');
+          if (matrixEmaText) {
+            matrixEmaText.innerText = (item.ema_anomaly * 100).toFixed(1);
+          }
+          const matrixActiveAnomalies = document.getElementById('matrix-active-anomalies');
+          if (matrixActiveAnomalies) {
+            const activeAnomalies = telemetryHistory.filter(d => d.anomalyScore > anomalyThreshold).length;
+            matrixActiveAnomalies.innerText = activeAnomalies;
+          }
+
+          // Update device state policy and trigger redraws
+          updateDeviceState();
+          triggerRedraws();
+
           const container = document.getElementById('stream-live');
           if (container) {
             appendLiveLog(item, container);
@@ -1188,7 +1243,7 @@
     }
 
     function startSimulation() {
-      simTimer = setInterval(stepSimulation, simInterval);
+      // Deactivated: driven by real API updates
     }
 
     // Chart Draw Dispatchers
@@ -1294,6 +1349,86 @@
         .attr("stroke-opacity", 0.25)
         .attr("transform", `translate(0,${chartHeight})`)
         .call(d3.axisBottom(x).tickSize(-chartHeight).tickFormat(""));
+
+      // Color Zones Background
+      // 0 - 50: Block (Red)
+      g.append("rect")
+        .attr("x", 0)
+        .attr("width", chartWidth)
+        .attr("y", y(50))
+        .attr("height", y(0) - y(50))
+        .attr("fill", getThemeColor('--color-alert') || '#FF007F')
+        .attr("fill-opacity", 0.04);
+
+      // 50 - 80: Verify (Yellow/Orange)
+      g.append("rect")
+        .attr("x", 0)
+        .attr("width", chartWidth)
+        .attr("y", y(80))
+        .attr("height", y(50) - y(80))
+        .attr("fill", "#FF9F00")
+        .attr("fill-opacity", 0.04);
+
+      // 80 - 100: Trusted (Green)
+      g.append("rect")
+        .attr("x", 0)
+        .attr("width", chartWidth)
+        .attr("y", y(100))
+        .attr("height", y(80) - y(100))
+        .attr("fill", getThemeColor('--color-acid') || '#B9FF66')
+        .attr("fill-opacity", 0.04);
+
+      // Zone boundary lines
+      g.append("line")
+        .attr("x1", 0)
+        .attr("x2", chartWidth)
+        .attr("y1", y(80))
+        .attr("y2", y(80))
+        .attr("stroke", getThemeColor('--color-acid') || '#B9FF66')
+        .attr("stroke-opacity", 0.3)
+        .attr("stroke-dasharray", "4,4")
+        .attr("stroke-width", 1);
+
+      g.append("line")
+        .attr("x1", 0)
+        .attr("x2", chartWidth)
+        .attr("y1", y(50))
+        .attr("y2", y(50))
+        .attr("stroke", getThemeColor('--color-alert') || '#FF007F')
+        .attr("stroke-opacity", 0.3)
+        .attr("stroke-dasharray", "4,4")
+        .attr("stroke-width", 1);
+
+      // Zone text labels
+      g.append("text")
+        .attr("x", chartWidth - 8)
+        .attr("y", y(90))
+        .attr("text-anchor", "end")
+        .attr("font-family", getThemeColor('--font-mono') || 'monospace')
+        .attr("font-size", "8px")
+        .attr("fill", getThemeColor('--color-acid') || '#B9FF66')
+        .attr("fill-opacity", 0.7)
+        .text("🟢 TRUSTED");
+
+      g.append("text")
+        .attr("x", chartWidth - 8)
+        .attr("y", y(65))
+        .attr("text-anchor", "end")
+        .attr("font-family", getThemeColor('--font-mono') || 'monospace')
+        .attr("font-size", "8px")
+        .attr("fill", "#FF9F00")
+        .attr("fill-opacity", 0.7)
+        .text("🟡 VERIFY");
+
+      g.append("text")
+        .attr("x", chartWidth - 8)
+        .attr("y", y(25))
+        .attr("text-anchor", "end")
+        .attr("font-family", getThemeColor('--font-mono') || 'monospace')
+        .attr("font-size", "8px")
+        .attr("fill", getThemeColor('--color-alert') || '#FF007F')
+        .attr("fill-opacity", 0.7)
+        .text("🔴 BLOCK");
 
       // Line / Area Spline Generators
       const area = d3.area()
