@@ -1683,10 +1683,10 @@
       }
 
       const x = d3.scaleTime().domain(d3.extent(data, d => d.time)).range([0, chartWidth]);
-      const y = d3.scaleLinear().domain([0, 100]).range([chartHeight, 0]);
+      const y = d3.scaleLinear().domain([0, 4]).range([chartHeight, 0]);
 
       // Grids
-      g.append("g").attr("stroke", getThemeColor('--color-border')).attr("stroke-opacity", 0.1).call(d3.axisLeft(y).tickSize(-chartWidth).tickFormat(""));
+      g.append("g").attr("stroke", getThemeColor('--color-border')).attr("stroke-opacity", 0.1).call(d3.axisLeft(y).tickValues([0, 1, 2, 3, 4]).tickSize(-chartWidth).tickFormat(""));
 
       // Line 1: Anomaly Score (Magenta)
       const lineAnomaly = d3.line()
@@ -1728,7 +1728,7 @@
 
       // Axes
       g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
-      g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisLeft(y).ticks(5));
+      g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisLeft(y).tickValues([0, 1, 2, 3, 4]));
     }
 
     // D3 Slow-burn Step Chart (Matrix view bottom-right)
