@@ -1,7 +1,7 @@
 {
   "name": "major-proj-frontend",
   "version": "1.0.0",
-  "description": "Neural Command Dashboard Frontend for Major Project",
+  "description": "ZeroTrustHub Dashboard Frontend for Major Project",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,7 +10,7 @@
   "keywords": [
     "dashboard",
     "zero-trust",
-    "neural-command",
+    "zerotrusthub",
     "d3"
   ],
   "author": "",
