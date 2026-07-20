@@ -1,0 +1,21 @@
+{
+  "name": "major-proj-frontend",
+  "version": "1.0.0",
+  "description": "Neural Command Dashboard Frontend for Major Project",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "dashboard",
+    "zero-trust",
+    "neural-command",
+    "d3"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

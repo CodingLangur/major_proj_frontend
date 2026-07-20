@@ -2,8 +2,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 8080;
-const API_BASE = 'http://20.119.77.54:9000';
+const PORT = process.env.PORT || 8080;
+const API_BASE = process.env.API_BASE || 'http://20.119.77.54:9000';
 
 const server = http.createServer((req, res) => {
   // CORS Headers
@@ -17,8 +17,10 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  const cleanUrl = req.url.split('?')[0];
+
   // Check if it's an API request
-  if (req.url.startsWith('/api/')) {
+  if (cleanUrl.startsWith('/api/')) {
     const targetUrl = API_BASE + req.url;
     
     http.get(targetUrl, (apiRes) => {
@@ -35,7 +37,7 @@ const server = http.createServer((req, res) => {
   }
 
   // Serve static files
-  let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+  let filePath = path.join(__dirname, cleanUrl === '/' ? 'index.html' : cleanUrl);
   
   // Basic security check to prevent directory traversal
   if (!filePath.startsWith(__dirname)) {
