@@ -1929,26 +1929,45 @@
         n.x = n.col * colWidth + 50;
       });
 
-      // Construct links flow links
-      const flowBlockedOdds = currentDeviceState === 'block' ? 1.0 : (currentDeviceState === 'verify' ? 0.45 : (isIntrusionActive ? 0.7 : 0.12));
+      // Construct links flow links based on live state
+      const isBlockedState = currentDeviceState === 'block';
+      const isVerifyState = currentDeviceState === 'verify';
+      const isAllowState = !isBlockedState && !isVerifyState;
+
+      const defaultLeafStatus = isBlockedState ? 'blocked' : (isVerifyState ? 'verify' : 'allow');
+      const anomalyLeafStatus = (isBlockedState || isIntrusionActive) ? 'blocked' : (isVerifyState ? 'verify' : 'allow');
 
       const links = [
         // Col 0 -> Col 1 (ESP32 Leaf -> Laptop Forwarder)
-        { source: 0, target: 3, value: 240, blocked: currentDeviceState === 'block', srcIp: "192.168.1.10 (ESP32)", size: "2.4 KB" },
-        { source: 1, target: 3, value: 180, blocked: currentDeviceState === 'block', srcIp: "192.168.1.11 (ESP32)", size: "1.8 KB" },
-        { source: 2, target: 4, value: 350, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "192.168.1.20 (ESP32)", size: "32.1 KB" },
+        { source: 0, target: 3, value: 240, status: defaultLeafStatus, srcIp: "192.168.1.10 (ESP32)", size: "2.4 KB" },
+        { source: 1, target: 3, value: 180, status: defaultLeafStatus, srcIp: "192.168.1.11 (ESP32)", size: "1.8 KB" },
+        { source: 2, target: 4, value: 350, status: anomalyLeafStatus, srcIp: "192.168.1.20 (ESP32)", size: "32.1 KB" },
 
         // Col 1 -> Col 2 (Laptop Forwarder -> WSL Gateway)
-        { source: 3, target: 5, value: 420, blocked: currentDeviceState === 'block', srcIp: "10.0.2.15 (WSL)", size: "4.2 KB" },
-        { source: 4, target: 6, value: 350, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "10.0.3.15 (WSL)", size: "32.1 KB" },
+        { source: 3, target: 5, value: 420, status: defaultLeafStatus, srcIp: "10.0.2.15 (WSL)", size: "4.2 KB" },
+        { source: 4, target: 6, value: 350, status: anomalyLeafStatus, srcIp: "10.0.3.15 (WSL)", size: "32.1 KB" },
 
         // Col 2 -> Col 3 (WSL Gateway -> Azure VM Trust Engine)
-        { source: 5, target: 7, value: 420, blocked: currentDeviceState === 'block', srcIp: "172.24.8.4", size: "128.4 KB" },
-        { source: 6, target: 7, value: 350, blocked: currentDeviceState === 'block' || isIntrusionActive, srcIp: "172.24.9.4", size: "32.1 KB" },
+        { source: 5, target: 7, value: 420, status: defaultLeafStatus, srcIp: "172.24.8.4", size: "128.4 KB" },
+        { source: 6, target: 7, value: 350, status: anomalyLeafStatus, srcIp: "172.24.9.4", size: "32.1 KB" },
 
         // Col 3 -> Col 4 (Azure VM -> Verdicts)
-        { source: 7, target: 8, value: currentDeviceState === 'block' ? 10 : (currentDeviceState === 'verify' ? 300 : (isIntrusionActive ? 150 : 650)), blocked: false, srcIp: "Azure VM", size: "Telemetry Payload" },
-        { source: 7, target: 9, value: currentDeviceState === 'block' ? 750 : (currentDeviceState === 'verify' ? 350 : (isIntrusionActive ? 550 : 80)), blocked: true, srcIp: "Azure VM", size: "Anomalous Traffic" }
+        {
+          source: 7,
+          target: 8,
+          value: isBlockedState ? 10 : (isVerifyState ? 300 : (isIntrusionActive ? 150 : 650)),
+          status: isBlockedState ? 'dim' : (isVerifyState ? 'verify' : 'allow'),
+          srcIp: "Azure VM Engine",
+          size: "Telemetry Payload"
+        },
+        {
+          source: 7,
+          target: 9,
+          value: isBlockedState ? 750 : (isVerifyState ? 350 : (isIntrusionActive ? 550 : 80)),
+          status: isBlockedState ? 'blocked' : (isVerifyState ? 'verify' : (isIntrusionActive ? 'blocked' : 'dim')),
+          srcIp: "Azure VM Engine",
+          size: "Anomalous Traffic"
+        }
       ];
 
       // Draw Links (Bezier paths)
@@ -1969,15 +1988,34 @@
           return `M${x0},${y0} C${x2},${y0} ${x3},${y1} ${x1},${y1}`;
         })
         .attr("fill", "none")
-        .attr("stroke", d => d.blocked ? getThemeColor('--color-status-blocked') : getThemeColor('--color-border'))
-        .attr("stroke-opacity", d => d.blocked ? 0.8 : 0.3)
+        .attr("stroke", d => {
+          if (d.status === 'allow') return getThemeColor('--color-status-allow') || '#B9FF66';
+          if (d.status === 'blocked') return getThemeColor('--color-status-blocked') || '#FF007F';
+          if (d.status === 'verify') return getThemeColor('--color-status-verify') || '#FFC800';
+          return getThemeColor('--color-border') || '#334155';
+        })
+        .attr("stroke-opacity", d => {
+          if (d.status === 'allow' || d.status === 'blocked') return 0.8;
+          if (d.status === 'verify') return 0.65;
+          return 0.2;
+        })
         .attr("stroke-width", d => Math.max(2, Math.min(15, d.value / 25)))
-        .attr("class", d => d.blocked ? "glow-status-blocked cursor-pointer transition-all duration-150" : "cursor-pointer transition-all duration-150")
+        .attr("class", d => {
+          if (d.status === 'allow') return "glow-status-allow cursor-pointer transition-all duration-150";
+          if (d.status === 'blocked') return "glow-status-blocked cursor-pointer transition-all duration-150";
+          if (d.status === 'verify') return "glow-status-verify cursor-pointer transition-all duration-150";
+          return "cursor-pointer transition-all duration-150";
+        })
         .on("mouseover", function(event, d) {
           // Highlight hover path, fade others
           d3.selectAll("path").style("opacity", 0.1);
           d3.select(this).style("opacity", 1.0).attr("stroke-width", Math.max(3, Math.min(18, d.value / 20)));
           
+          let statusHtml = '<span class="font-bold text-allow">APPROVED</span>';
+          if (d.status === 'blocked') statusHtml = '<span class="font-bold text-blocked">BLOCKED Anomaly</span>';
+          else if (d.status === 'verify') statusHtml = '<span class="font-bold text-verify">VERIFY Required</span>';
+          else if (d.status === 'dim') statusHtml = '<span class="font-semibold text-muted">INACTIVE / Baseline</span>';
+
           d3.select("#d3-tooltip")
             .style("opacity", 0.95)
             .style("left", (event.clientX + 15) + "px")
@@ -1986,7 +2024,7 @@
               <div class="font-bold text-primary mb-1">ZTA TELEMETRY LINK</div>
               <div>Source IP: <span class="font-bold text-text">${d.srcIp}</span></div>
               <div>Payload: <span class="font-semibold text-text">${d.size}</span></div>
-              <div>Status: <span class="font-bold ${d.blocked ? 'text-blocked' : 'text-allow'}">${d.blocked ? 'BLOCKED Anomaly' : 'APPROVED'}</span></div>
+              <div>Status: ${statusHtml}</div>
             `);
         })
         .on("mouseout", function() {
@@ -2006,9 +2044,24 @@
         .attr("width", 30)
         .attr("height", 40)
         .attr("fill", d => d.color || getThemeColor('--color-surface'))
-        .attr("stroke", d => d.color || getThemeColor('--color-border'))
+        .attr("stroke", d => {
+          if (d.id === 7) {
+            if (isBlockedState) return getThemeColor('--color-status-blocked');
+            if (isVerifyState) return getThemeColor('--color-status-verify');
+            return getThemeColor('--color-status-allow');
+          }
+          return d.color || getThemeColor('--color-border');
+        })
         .attr("stroke-width", 1.5)
-        .attr("class", d => d.color ? (d.color === getThemeColor('--color-alert') ? "glow-alert" : "glow-acid") : "");
+        .attr("class", d => {
+          if (d.color) {
+            return d.color === getThemeColor('--color-status-blocked') ? "glow-status-blocked" : "glow-status-allow";
+          }
+          if (d.id === 7) {
+            return isBlockedState ? "glow-status-blocked" : (isVerifyState ? "glow-status-verify" : "glow-status-allow");
+          }
+          return "";
+        });
 
       nodeG.append("text")
         .attr("x", 15)
