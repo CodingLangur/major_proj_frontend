@@ -634,17 +634,33 @@
   </main>
 
   <!-- Global Footer -->
-  <footer class="h-10 border-t border-bordercol bg-surface flex items-center justify-between px-6 z-10 shrink-0 text-[11px] font-mono-data text-muted">
-    <div class="flex items-center gap-6">
-      <span>ZTA PROTECTION LAYER: <span class="text-acid font-bold">SHIELD ACTIVE</span></span>
-      <span>|</span>
-      <span>ANOMALY THRESHOLD: <span id="footer-anomaly-val">75.0</span></span>
-      <span>|</span>
-      <span>SYSTEM LOAD: <span class="text-primary font-bold">14.2%</span></span>
+  <footer class="h-10 border-t border-[#121c24] bg-surface/95 flex items-center justify-between px-6 z-10 shrink-0 text-[11px] font-mono-data text-muted backdrop-blur-sm">
+    <!-- Left Metric: Protection Status -->
+    <div class="flex items-center gap-2.5">
+      <span class="inline-block h-2 w-2 rounded-full bg-acid shadow-[0_0_8px_rgba(185,255,102,0.8)]"></span>
+      <span>ZTA PROTECTION LAYER: <span class="text-acid font-bold tracking-wide">SHIELD ACTIVE</span></span>
     </div>
-    <div class="flex items-center gap-2">
-      <span class="animate-pulse h-1.5 w-1.5 rounded-full bg-primary inline-block"></span>
-      <span>FEED SYNC: OK</span>
+    
+    <!-- Center Metrics: Anomaly Threshold & System Load -->
+    <div class="flex items-center gap-8 text-center">
+      <div class="flex items-center gap-2">
+        <i data-lucide="sliders" class="w-3.5 h-3.5 text-primary"></i>
+        <span>ANOMALY THRESHOLD: <span id="footer-anomaly-val" class="font-bold text-text">75.0</span></span>
+      </div>
+      <span class="text-bordercol font-normal">|</span>
+      <div class="flex items-center gap-2">
+        <i data-lucide="cpu" class="w-3.5 h-3.5 text-primary"></i>
+        <span>SYSTEM LOAD: <span class="text-primary font-bold">14.2%</span></span>
+      </div>
+    </div>
+
+    <!-- Right Metric: Live Feed Sync with Glowing Green Pulse -->
+    <div class="flex items-center gap-2 px-2.5 py-0.5 rounded-full border border-allow/30 bg-allow/10 shadow-[0_0_10px_rgba(0,255,136,0.15)]">
+      <div class="relative flex items-center justify-center h-2.5 w-2.5">
+        <span class="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-allow opacity-75 glow-status-allow"></span>
+        <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-allow dot-pulse-green"></span>
+      </div>
+      <span class="text-allow font-bold text-[10px] tracking-wider uppercase glow-status-allow">FEED SYNC: OK</span>
     </div>
   </footer>
 
