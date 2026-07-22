@@ -111,6 +111,24 @@
     .glow-cyan {
       filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.4));
     }
+    .glow-cyan-sharp {
+      text-shadow: 0 0 5px rgba(0, 229, 255, 0.9), 0 0 12px rgba(0, 229, 255, 0.7), 0 0 22px rgba(0, 229, 255, 0.5);
+      filter: drop-shadow(0 0 8px #00e5ff);
+    }
+    @keyframes pulse-green {
+      0%, 100% {
+        box-shadow: 0 0 8px #00ff88, 0 0 14px rgba(0, 255, 136, 0.6);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 4px #00ff88, 0 0 6px rgba(0, 255, 136, 0.3);
+        transform: scale(0.85);
+      }
+    }
+    .dot-pulse-green {
+      box-shadow: 0 0 8px #00ff88;
+      animation: pulse-green 2s infinite ease-in-out;
+    }
     .glow-alert {
       filter: drop-shadow(0 0 8px rgba(255, 107, 0, 0.4));
     }
@@ -204,7 +222,7 @@
       animation: toastProgress 4.5s linear forwards;
     }
 
-    /* Tab active styles */
+    /* Tab active styles & sliding indicator */
     .tab-btn {
       position: relative;
       transition: color 0.2s ease;
@@ -212,15 +230,14 @@
     .tab-btn.active {
       color: var(--color-primary);
     }
-    .tab-btn.active::after {
-      content: '';
+    #nav-indicator {
       position: absolute;
-      bottom: -1px;
-      left: 0;
-      width: 100%;
+      bottom: 0;
       height: 2px;
       background-color: var(--color-primary);
-      box-shadow: 0 0 8px var(--color-primary);
+      box-shadow: 0 0 10px var(--color-primary), 0 0 4px var(--color-primary);
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
     }
 
     /* D3 specific overlay styling */
@@ -277,24 +294,24 @@
         <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-acid opacity-75"></span>
         <span class="relative inline-flex rounded-full h-2 w-2 bg-acid"></span>
       </div>
-      <h1 class="text-xl font-bold tracking-wider font-mono-data text-text">
-        ZEROTRUST<span class="text-primary glow-cyan">HUB</span>
+      <h1 class="text-xl font-bold tracking-wider leading-relaxed font-mono-data text-text flex items-center gap-1.5">
+        NEURAL COMMAND <span class="text-primary glow-cyan-sharp">OVERWATCH</span>
       </h1>
       <span class="text-xs bg-bordercol border border-bordercol px-2 py-0.5 font-mono-data text-muted mt-0.5">V1.0.4-BETA</span>
       
-      <!-- Device Status Indicator -->
-      <div id="header-device-status-container" class="flex items-center gap-2 border-l border-bordercol pl-3 ml-1">
-        <div class="relative flex items-center justify-center h-4 w-4">
-          <span id="header-status-ping" class="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full bg-allow opacity-75 glow-status-allow"></span>
-          <span id="header-status-dot" class="relative inline-flex rounded-full h-1.5 w-1.5 bg-allow"></span>
+      <!-- Device Status Indicator Pill -->
+      <div id="header-device-status-container" class="flex items-center gap-2 ml-3 px-3 py-1 rounded-full border border-allow/30 bg-surface/80 shadow-[0_0_12px_rgba(0,255,136,0.15)] transition-all duration-300">
+        <div class="relative flex items-center justify-center h-3 w-3">
+          <span id="header-status-ping" class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-allow opacity-75 glow-status-allow"></span>
+          <span id="header-status-dot" class="relative inline-flex rounded-full h-2 w-2 dot-pulse-green bg-allow"></span>
         </div>
-        <span class="text-xs font-mono-data font-bold tracking-wider text-muted">DEVICE STATE:</span>
-        <span id="header-status-text" class="text-xs font-mono-data font-bold tracking-wider text-allow glow-status-allow">ACTIVE</span>
+        <span class="text-xs font-mono-data font-semibold tracking-wide text-muted/90 uppercase">DEVICE STATE:</span>
+        <span id="header-status-text" class="text-xs font-mono-data font-bold tracking-wider text-allow glow-status-allow uppercase">ACTIVE</span>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
-    <nav class="flex h-full items-center gap-8">
+    <nav id="nav-container" class="relative flex h-full items-center gap-8">
       <button onclick="switchTab('overwatch')" id="tab-overwatch" class="tab-btn active h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
         <i data-lucide="layout-dashboard" class="w-4 h-4"></i> OVERWATCH CONSOLE
       </button>
@@ -307,14 +324,15 @@
       <button onclick="switchTab('telemetry')" id="tab-telemetry" class="tab-btn h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
         <i data-lucide="terminal" class="w-4 h-4"></i> TELEMETRY STREAM
       </button>
+      <div id="nav-indicator"></div>
     </nav>
 
-    <!-- Theme Switcher -->
+    <!-- Theme Switcher Segmented Control -->
     <div class="flex items-center gap-4">
-      <div class="flex items-center border border-bordercol bg-background p-0.5">
-        <button onclick="setTheme('dark')" id="theme-dark" class="px-2 py-1 text-xs font-mono-data bg-bordercol text-primary font-bold">OBSIDIAN</button>
-        <button onclick="setTheme('light')" id="theme-light" class="px-2 py-1 text-xs font-mono-data text-muted hover:text-text">LIGHT</button>
-        <button onclick="setTheme('solarized')" id="theme-solarized" class="px-2 py-1 text-xs font-mono-data text-muted hover:text-text">SOLARIZED</button>
+      <div class="flex items-center p-1 rounded-lg border border-bordercol/80 bg-background/80 backdrop-blur-sm shadow-inner gap-1">
+        <button onclick="setTheme('dark')" id="theme-dark" class="theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 text-muted hover:text-text">OBSIDIAN</button>
+        <button onclick="setTheme('light')" id="theme-light" class="theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 text-muted hover:text-text">LIGHT</button>
+        <button onclick="setTheme('solarized')" id="theme-solarized" class="theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 text-muted hover:text-text">SOLARIZED</button>
       </div>
     </div>
   </header>
@@ -658,6 +676,19 @@
       return `${hh}:${mm}:${ss}.${ms}`;
     }
 
+    // Dynamic sliding nav indicator calculation
+    function updateNavIndicator() {
+      const container = document.getElementById('nav-container');
+      const activeTab = document.querySelector('.tab-btn.active');
+      const indicator = document.getElementById('nav-indicator');
+      if (container && activeTab && indicator) {
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeTab.getBoundingClientRect();
+        indicator.style.left = `${activeRect.left - containerRect.left}px`;
+        indicator.style.width = `${activeRect.width}px`;
+      }
+    }
+
     // Switch View Tabs
     function switchTab(tabId) {
       currentTab = tabId;
@@ -675,6 +706,8 @@
         }
       }
       
+      updateNavIndicator();
+      
       // Force D3 charts redraw
       triggerRedraws();
     }
@@ -684,15 +717,13 @@
       currentTheme = theme;
       document.documentElement.setAttribute('data-theme', theme);
       
-      document.querySelectorAll('[id^="theme-"]').forEach(btn => {
-        btn.classList.remove('bg-bordercol', 'text-primary', 'font-bold');
-        btn.classList.add('text-muted');
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.className = 'theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 text-muted hover:text-text hover:bg-bordercol/30 border border-transparent';
       });
       
       const activeBtn = document.getElementById('theme-' + theme);
       if (activeBtn) {
-        activeBtn.classList.remove('text-muted');
-        activeBtn.classList.add('bg-bordercol', 'text-primary', 'font-bold');
+        activeBtn.className = 'theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 bg-primary/20 text-primary border border-primary/40 font-bold shadow-[0_0_10px_rgba(0,229,255,0.2)]';
       }
       
       // Redraw charts with new theme colors
@@ -2259,6 +2290,7 @@
     // ==========================================
 
     window.addEventListener("resize", () => {
+      updateNavIndicator();
       triggerRedraws();
     });
 
@@ -2267,6 +2299,8 @@
     
     // Initial draw
     setTimeout(() => {
+      setTheme(currentTheme);
+      updateNavIndicator();
       updateDeviceState();
       lucide.createIcons();
       triggerRedraws();
