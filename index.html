@@ -248,6 +248,25 @@
     .tick line {
       stroke: rgba(138, 153, 168, 0.25) !important;
     }
+    /* ZTA Flow animated pulses and node glow */
+    @keyframes dash-flow {
+      from {
+        stroke-dashoffset: 24;
+      }
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+    .link-flow-pulse {
+      stroke-dasharray: 6, 6;
+      animation: dash-flow 1.2s linear infinite;
+    }
+    .glow-node-approved {
+      filter: drop-shadow(0 0 8px rgba(0, 255, 128, 0.6)) drop-shadow(0 0 14px rgba(0, 255, 128, 0.4));
+    }
+    .glow-node-blocked {
+      filter: drop-shadow(0 0 8px rgba(255, 51, 51, 0.6)) drop-shadow(0 0 14px rgba(255, 51, 51, 0.4));
+    }
     .d3-tooltip {
       position: absolute;
       background-color: var(--color-surface);
@@ -2276,6 +2295,34 @@
           d3.select("#d3-tooltip").style("opacity", 0);
         });
 
+      // Overlay animated moving dashes / light pulses along connection paths
+      svg.selectAll(".link-pulse")
+        .data(links)
+        .enter()
+        .append("path")
+        .attr("d", d => {
+          const s = nodes[d.source];
+          const t = nodes[d.target];
+          const x0 = s.x + 20;
+          const y0 = s.y;
+          const x1 = t.x - 20;
+          const y1 = t.y;
+          const xi = d3.interpolateNumber(x0, x1);
+          const x2 = xi(0.4);
+          const x3 = xi(0.6);
+          return `M${x0},${y0} C${x2},${y0} ${x3},${y1} ${x1},${y1}`;
+        })
+        .attr("fill", "none")
+        .attr("stroke", d => {
+          if (d.status === 'allow') return getThemeColor('--color-acid') || '#B9FF66';
+          if (d.status === 'blocked') return getThemeColor('--color-status-blocked') || '#FF007F';
+          if (d.status === 'verify') return getThemeColor('--color-status-verify') || '#FFC800';
+          return getThemeColor('--color-primary') || '#00E5FF';
+        })
+        .attr("stroke-width", 2)
+        .attr("stroke-opacity", d => (d.status === 'dim' ? 0.3 : 0.9))
+        .attr("class", "link-flow-pulse pointer-events-none");
+
       // Draw Nodes
       const nodeG = svg.selectAll(".node")
         .data(nodes)
@@ -2286,6 +2333,8 @@
       nodeG.append("rect")
         .attr("width", 30)
         .attr("height", 40)
+        .attr("rx", 5)
+        .attr("ry", 5)
         .attr("fill", d => d.color || getThemeColor('--color-surface'))
         .attr("stroke", d => {
           if (d.id === 7) {
@@ -2297,6 +2346,8 @@
         })
         .attr("stroke-width", 1.5)
         .attr("class", d => {
+          if (d.id === 8) return "glow-node-approved";
+          if (d.id === 9) return "glow-node-blocked";
           if (d.color) {
             return d.color === getThemeColor('--color-status-blocked') ? "glow-status-blocked" : "glow-status-allow";
           }
@@ -2306,13 +2357,28 @@
           return "";
         });
 
+      // Dark backdrop pill for node labels to ensure crisp contrast
+      nodeG.append("rect")
+        .attr("x", d => 15 - Math.max(45, (d.name.length * 2.7 + 6)))
+        .attr("y", -18)
+        .attr("width", d => Math.max(90, (d.name.length * 5.4 + 12)))
+        .attr("height", 14)
+        .attr("rx", 3)
+        .attr("ry", 3)
+        .attr("fill", "rgba(5, 6, 8, 0.88)")
+        .attr("stroke", "rgba(30, 41, 59, 0.8)")
+        .attr("stroke-width", 0.5);
+
+      // Node label text with 90% opacity
       nodeG.append("text")
         .attr("x", 15)
-        .attr("y", -6)
+        .attr("y", -7)
         .attr("text-anchor", "middle")
-        .attr("font-family", getThemeColor('--font-mono'))
+        .attr("font-family", getThemeColor('--font-mono') || 'monospace')
         .attr("font-size", "9px")
-        .attr("fill", getThemeColor('--color-text'))
+        .attr("font-weight", "600")
+        .attr("fill", "#F8FAFC")
+        .attr("fill-opacity", 0.9)
         .text(d => d.name);
     }
 
