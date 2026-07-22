@@ -241,6 +241,13 @@
     }
 
     /* D3 specific overlay styling */
+    .tick text {
+      fill: #8a99a8 !important;
+      font-family: var(--font-mono);
+    }
+    .tick line {
+      stroke: rgba(138, 153, 168, 0.25) !important;
+    }
     .d3-tooltip {
       position: absolute;
       background-color: var(--color-surface);
@@ -390,26 +397,43 @@
         <div class="cyber-panel p-4 flex flex-col gap-3 shrink-0">
           <div class="text-xs font-mono-data font-bold tracking-widest text-muted mb-1">DECISION MATRIX CONTROLS</div>
           <div class="grid grid-cols-2 gap-2 text-xs font-mono-data">
-            <div class="border border-bordercol bg-background/50 p-2 flex flex-col">
+            <div class="border border-[#1f2d3d] bg-background/80 p-2 flex flex-col rounded-sm hover:border-primary/50 transition-colors">
               <span class="text-muted text-[10px]">SIM SPEED</span>
-              <select id="select-speed" onchange="changeSimSpeed(this.value)" class="bg-transparent border-0 text-text outline-none font-bold mt-1">
-                <option value="500" selected>NORMAL (500ms)</option>
-                <option value="200">WARP (200ms)</option>
-                <option value="1000">SLOW (1000ms)</option>
-              </select>
+              <div class="relative flex items-center mt-1">
+                <select id="select-speed" onchange="changeSimSpeed(this.value)" class="w-full bg-surface border border-[#1f2d3d] rounded text-text outline-none font-bold py-1 px-2 text-xs appearance-none cursor-pointer hover:border-primary/60 focus:border-primary transition-all pr-6 font-mono-data">
+                  <option value="500" selected class="bg-surface text-text">NORMAL (500ms)</option>
+                  <option value="200" class="bg-surface text-text">WARP (200ms)</option>
+                  <option value="1000" class="bg-surface text-text">SLOW (1000ms)</option>
+                </select>
+                <div class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted">
+                  <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                </div>
+              </div>
             </div>
-            <div class="border border-bordercol bg-background/50 p-2 flex flex-col justify-between">
+            
+            <div class="border border-[#1f2d3d] bg-background/80 p-2 flex flex-col justify-between rounded-sm">
               <span class="text-muted text-[10px]">ALERT LIMITS</span>
-              <span id="txt-slider-val" class="font-bold text-alert mt-1">75.0</span>
+              <span id="txt-slider-val" class="font-bold text-alert mt-1 text-sm glow-alert">75.0</span>
             </div>
-            <div class="col-span-2 border border-bordercol bg-background/50 p-2 flex items-center justify-between">
+
+            <div class="col-span-2 border border-[#1f2d3d] bg-background/80 p-2 flex items-center justify-between rounded-sm">
               <div class="flex flex-col">
                 <span class="text-muted text-[10px]">DEVICE STATE POLICY</span>
-                <span id="select-device-policy" class="text-allow font-bold mt-0.5 font-mono-data">AUTO (ZTA ENGINE)</span>
+                <div class="relative flex items-center mt-1">
+                  <select id="select-device-policy-dropdown" onchange="changeDevicePolicy(this.value)" class="bg-surface border border-[#1f2d3d] rounded text-allow outline-none font-bold py-1 px-2 text-xs appearance-none cursor-pointer hover:border-primary/60 focus:border-primary transition-all pr-6 font-mono-data">
+                    <option value="auto" selected class="bg-surface text-allow font-bold">AUTO (ZTA ENGINE)</option>
+                    <option value="allow" class="bg-surface text-allow">FORCE ALLOW</option>
+                    <option value="verify" class="bg-surface text-verify">FORCE VERIFY</option>
+                    <option value="block" class="bg-surface text-blocked">FORCE BLOCK</option>
+                  </select>
+                  <div class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted">
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                  </div>
+                </div>
               </div>
-              <div class="flex items-center gap-1.5 border border-bordercol/50 bg-background/80 px-2 py-1">
-                <span id="control-status-dot" class="inline-block h-2 w-2 rounded-full bg-allow glow-status-allow"></span>
-                <span id="control-status-text" class="text-[10px] font-bold text-allow font-mono-data uppercase">ACTIVE</span>
+              <div class="flex items-center gap-1.5 border border-[#1f2d3d] bg-background/80 px-2.5 py-1 rounded-full">
+                <span id="control-status-dot" class="inline-block h-2 w-2 rounded-full bg-allow dot-pulse-green"></span>
+                <span id="control-status-text" class="text-[10px] font-bold text-allow font-mono-data uppercase tracking-wider">ACTIVE</span>
               </div>
             </div>
           </div>
@@ -844,8 +868,14 @@
       }
     }
 
+    function changeDevicePolicy(val) {
+      devicePolicy = val;
+      updateDeviceState();
+    }
+
     window.simulateApiDecision = simulateApiDecision;
     window.showStatusNotification = showStatusNotification;
+    window.changeDevicePolicy = changeDevicePolicy;
 
     // Device State Policy Management (Hardcoded to AUTO mode driven by the ZTA engine)
 
@@ -1557,10 +1587,10 @@
         .attr("x1", "0%").attr("y1", "0%")
         .attr("x2", "0%").attr("y2", "100%");
 
-      // Acid green at top, Cyan in middle, Orange at bottom
-      gradient.append("stop").attr("offset", "0%").attr("stop-color", getThemeColor('--color-acid')).attr("stop-opacity", 0.4);
-      gradient.append("stop").attr("offset", "50%").attr("stop-color", getThemeColor('--color-primary')).attr("stop-opacity", 0.2);
-      gradient.append("stop").attr("offset", "100%").attr("stop-color", getThemeColor('--color-alert')).attr("stop-opacity", 0.6);
+      // Acid green at top, Cyan in middle, Orange at bottom with baseline transparency
+      gradient.append("stop").attr("offset", "0%").attr("stop-color", getThemeColor('--color-acid')).attr("stop-opacity", 0.35);
+      gradient.append("stop").attr("offset", "50%").attr("stop-color", getThemeColor('--color-primary')).attr("stop-opacity", 0.15);
+      gradient.append("stop").attr("offset", "100%").attr("stop-color", "rgba(255, 100, 0, 0.05)").attr("stop-opacity", 0.05);
 
       // Gridlines
       g.append("g")
@@ -1683,7 +1713,7 @@
         .attr("class", "glow-cyan")
         .attr("d", line);
 
-      // Draw Axes
+      // Draw Axes with bright silver-grey text
       const xAxis = d3.axisBottom(x).ticks(isLargeView ? 8 : 4).tickFormat(d3.timeFormat("%H:%M:%S"));
       const yAxis = d3.axisLeft(y).ticks(5);
 
@@ -1691,13 +1721,13 @@
         .attr("transform", `translate(0,${chartHeight})`)
         .attr("font-family", getThemeColor('--font-mono'))
         .attr("font-size", "9px")
-        .attr("color", getThemeColor('--color-muted'))
+        .attr("color", "#8a99a8")
         .call(xAxis);
 
       g.append("g")
         .attr("font-family", getThemeColor('--font-mono'))
         .attr("font-size", "9px")
-        .attr("color", getThemeColor('--color-muted'))
+        .attr("color", "#8a99a8")
         .call(yAxis);
 
       // Hover Crosshair Interactions
@@ -1808,14 +1838,14 @@
         .range([0, chartWidth]);
 
       const y = d3.scaleLinear()
-        .domain([0, 10])
+        .domain([0, 100])
         .range([chartHeight, 0]);
 
       // Gridlines
       g.append("g")
         .attr("stroke", getThemeColor('--color-border'))
         .attr("stroke-opacity", 0.15)
-        .call(d3.axisLeft(y).tickValues([0, 2, 4, 6, 8, 10]).tickSize(-chartWidth).tickFormat(""));
+        .call(d3.axisLeft(y).tickValues([0, 20, 40, 60, 80, 100]).tickSize(-chartWidth).tickFormat(""));
 
       // Standard Anomaly Score Line
       const line = d3.line()
@@ -1845,15 +1875,16 @@
         .attr("fill", getThemeColor('--color-alert'))
         .attr("class", "glow-alert");
 
-      // Draw red dashed Threshold Line
+      // Draw red/orange dashed Threshold Line with ambient glow
       g.append("line")
         .attr("x1", 0)
         .attr("y1", y(anomalyThreshold))
         .attr("x2", chartWidth)
         .attr("y2", y(anomalyThreshold))
-        .attr("stroke", getThemeColor('--color-alert'))
+        .attr("stroke", "#FF6B00")
         .attr("stroke-width", 1.5)
         .attr("stroke-dasharray", "4,4")
+        .attr("filter", "drop-shadow(0 0 6px rgba(255, 107, 0, 0.8))")
         .attr("class", "glow-alert");
 
       // Draw Axes
@@ -1861,14 +1892,14 @@
         .attr("transform", `translate(0,${chartHeight})`)
         .attr("font-family", getThemeColor('--font-mono'))
         .attr("font-size", "9px")
-        .attr("color", getThemeColor('--color-muted'))
+        .attr("color", "#8a99a8")
         .call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
 
       g.append("g")
         .attr("font-family", getThemeColor('--font-mono'))
         .attr("font-size", "9px")
-        .attr("color", getThemeColor('--color-muted'))
-        .call(d3.axisLeft(y).tickValues([0, 2, 4, 6, 8, 10]));
+        .attr("color", "#8a99a8")
+        .call(d3.axisLeft(y).tickValues([0, 20, 40, 60, 80, 100]));
     }
 
     // D3 Threat Correlation Matrix Plot (Matrix view bottom-left)
@@ -1939,8 +1970,8 @@
       legend.append("text").attr("x", 8).attr("y", 15).attr("fill", getThemeColor('--color-muted')).attr("font-family", getThemeColor('--font-mono') || 'monospace').attr("font-size", "8px").text("EMA TREND");
 
       // Axes
-      g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
-      g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisLeft(y).tickValues([0, 2, 4, 6, 8, 10]));
+      g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", "#8a99a8").call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
+      g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", "#8a99a8").call(d3.axisLeft(y).tickValues([0, 2, 4, 6, 8, 10]));
     }
 
     // D3 Slow-burn Step Chart (Matrix view bottom-right)
@@ -1992,8 +2023,8 @@
         .attr("d", line);
 
       // Axes
-      g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
-      g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", getThemeColor('--color-muted')).call(d3.axisLeft(y).tickValues([0, 1, 2, 3]));
+      g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", "#8a99a8").call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
+      g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", "#8a99a8").call(d3.axisLeft(y).tickValues([0, 1, 2, 3]));
     }
 
     // D3 Zero Trust Decision Flow Timeline Chart
@@ -2099,7 +2130,7 @@
         .attr("transform", `translate(0,${chartHeight})`)
         .attr("font-family", getThemeColor('--font-mono') || 'monospace')
         .attr("font-size", "8px")
-        .attr("color", getThemeColor('--color-muted'))
+        .attr("color", "#8a99a8")
         .call(d3.axisBottom(x).ticks(3).tickFormat(d3.timeFormat("%H:%M:%S")));
     }
 
