@@ -165,6 +165,45 @@
       background-color: rgba(0, 229, 255, 0.05);
     }
 
+    /* Top-Right Toast Animations */
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    @keyframes slideOutRight {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+    }
+    @keyframes toastProgress {
+      from {
+        width: 100%;
+      }
+      to {
+        width: 0%;
+      }
+    }
+    .toast-enter {
+      animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .toast-exit {
+      animation: slideOutRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .toast-progress-bar {
+      animation: toastProgress 4.5s linear forwards;
+    }
+
     /* Tab active styles */
     .tab-btn {
       position: relative;
@@ -227,6 +266,9 @@
 
   <!-- D3 Tooltip -->
   <div id="d3-tooltip" class="d3-tooltip shadow-lg"></div>
+
+  <!-- Top-Right Notification Container -->
+  <div id="status-notification-toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2.5 max-w-xs sm:max-w-sm w-full pointer-events-none"></div>
 
   <!-- Global Header -->
   <header class="h-16 border-b border-bordercol bg-surface flex items-center justify-between px-6 z-10 shrink-0">
@@ -351,6 +393,19 @@
                 <span id="control-status-dot" class="inline-block h-2 w-2 rounded-full bg-allow glow-status-allow"></span>
                 <span id="control-status-text" class="text-[10px] font-bold text-allow font-mono-data uppercase">ACTIVE</span>
               </div>
+            </div>
+          </div>
+
+          <!-- Manual State Switcher (For Manual Frontend Testing) -->
+          <div class="border border-bordercol bg-background/50 p-2 flex flex-col gap-1.5 font-mono-data text-xs mt-1">
+            <div class="flex justify-between items-center">
+              <span class="text-muted text-[10px]">TEST API STATE SWITCH</span>
+              <span class="text-[9px] text-primary font-bold">MANUAL TEST</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5 mt-0.5">
+              <button onclick="simulateApiDecision('ALLOW')" class="px-2 py-1 text-[10px] font-bold border border-acid/40 bg-acid/10 text-acid hover:bg-acid/20 transition rounded-none">ALLOW</button>
+              <button onclick="simulateApiDecision('VERIFY')" class="px-2 py-1 text-[10px] font-bold border border-verify/40 bg-verify/10 text-verify hover:bg-verify/20 transition rounded-none">VERIFY</button>
+              <button onclick="simulateApiDecision('BLOCK')" class="px-2 py-1 text-[10px] font-bold border border-blocked/40 bg-blocked/10 text-blocked hover:bg-blocked/20 transition rounded-none">BLOCK</button>
             </div>
           </div>
 
@@ -522,6 +577,7 @@
     let devicePolicy = 'auto';
     let currentDeviceState = 'allow';
     let lastApiDecision = 'allow';
+    let lastNotifiedState = null;
     
     // Log Streams Status
     const streamStatus = {
@@ -643,6 +699,123 @@
       triggerRedraws();
     }
 
+    // Top-Right Toast Notification System for API Status Transitions
+    function showStatusNotification(fromState, toState) {
+      const container = document.getElementById('status-notification-toast-container');
+      if (!container) return;
+
+      const fromUpper = (fromState || 'ALLOW').toUpperCase();
+      const toUpper = (toState || 'ALLOW').toUpperCase();
+
+      let stateColorClass = 'text-allow';
+      let stateBgClass = 'bg-allow/20';
+      let stateBorderClass = 'border-l-allow';
+      let glowClass = 'glow-status-allow';
+      let statusLabel = 'ACTIVE / ALLOWED';
+      let borderHex = 'var(--color-status-allow)';
+
+      if (toState.toLowerCase() === 'block') {
+        stateColorClass = 'text-blocked';
+        stateBgClass = 'bg-blocked/20';
+        stateBorderClass = 'border-l-blocked';
+        glowClass = 'glow-status-blocked';
+        statusLabel = 'BLOCKED / DENIED';
+        borderHex = 'var(--color-status-blocked)';
+      } else if (toState.toLowerCase() === 'verify') {
+        stateColorClass = 'text-verify';
+        stateBgClass = 'bg-verify/20';
+        stateBorderClass = 'border-l-verify';
+        glowClass = 'glow-status-verify';
+        statusLabel = 'VERIFICATION REQ.';
+        borderHex = 'var(--color-status-verify)';
+      }
+
+      const toast = document.createElement('div');
+      toast.className = `toast-enter pointer-events-auto flex flex-col cyber-panel p-3.5 bg-surface/95 border border-bordercol border-l-4 ${stateBorderClass} shadow-2xl relative overflow-hidden transition-all duration-300 ${glowClass}`;
+      
+      const now = new Date();
+      const timeStr = formatTime(now);
+
+      toast.innerHTML = `
+        <div class="flex items-center justify-between gap-2 border-b border-bordercol/50 pb-2 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="relative flex h-2.5 w-2.5 items-center justify-center">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full ${stateBgClass} opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 ${stateColorClass.replace('text-', 'bg-')}"></span>
+            </span>
+            <span class="text-xs font-mono-data font-bold tracking-widest text-text">ZTA STATUS SWITCH</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] font-mono-data text-muted">${timeStr}</span>
+            <button class="toast-close-btn text-muted hover:text-text transition-colors p-0.5" aria-label="Dismiss notification">
+              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between gap-3 my-1">
+          <div class="flex items-center gap-2 font-mono-data text-xs">
+            <span class="px-2 py-0.5 text-[10px] font-bold border border-bordercol bg-background/80 text-muted uppercase">${fromUpper}</span>
+            <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-primary shrink-0"></i>
+            <span class="px-2 py-0.5 text-[10px] font-bold border border-bordercol/80 ${stateBgClass} ${stateColorClass} ${glowClass} uppercase">${toUpper}</span>
+          </div>
+          <span class="text-[10px] font-mono-data font-bold ${stateColorClass} uppercase">${statusLabel}</span>
+        </div>
+
+        <div class="text-[11px] font-mono-data text-muted mt-1">
+          Live API status switched to <span class="font-bold ${stateColorClass}">${toUpper}</span>. Policy enforcement active.
+        </div>
+
+        <div class="absolute bottom-0 left-0 h-[2px] bg-bordercol/30 w-full overflow-hidden">
+          <div class="toast-progress-bar h-full" style="background-color: ${borderHex}"></div>
+        </div>
+      `;
+
+      while (container.children.length >= 4) {
+        container.removeChild(container.firstChild);
+      }
+
+      container.appendChild(toast);
+
+      if (window.lucide) {
+        lucide.createIcons({ props: {}, nameAttr: 'data-lucide', attrs: { 'stroke-width': 2 } });
+      }
+
+      const closeBtn = toast.querySelector('.toast-close-btn');
+      let dismissTimeout;
+
+      function removeToast() {
+        if (dismissTimeout) clearTimeout(dismissTimeout);
+        toast.classList.remove('toast-enter');
+        toast.classList.add('toast-exit');
+        toast.addEventListener('animationend', () => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, { once: true });
+      }
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', removeToast);
+      }
+
+      dismissTimeout = setTimeout(removeToast, 4500);
+    }
+
+    function simulateApiDecision(decision) {
+      const upper = String(decision).toUpperCase();
+      if (['ALLOW', 'BLOCK', 'VERIFY'].includes(upper)) {
+        lastApiDecision = upper;
+        updateDeviceState();
+        console.log(`[ZTA Manual Test] API Decision set to: ${upper}`);
+      } else {
+        console.warn(`[ZTA Manual Test] Unknown decision: ${decision}. Use 'ALLOW', 'BLOCK', or 'VERIFY'.`);
+      }
+    }
+
+    window.simulateApiDecision = simulateApiDecision;
+    window.showStatusNotification = showStatusNotification;
+
     // Device State Policy Management (Hardcoded to AUTO mode driven by the ZTA engine)
 
     function updateDeviceState() {
@@ -667,6 +840,14 @@
         targetState = devicePolicy;
       }
       
+      if (lastNotifiedState === null) {
+        lastNotifiedState = targetState;
+      } else if (lastNotifiedState !== targetState) {
+        const oldState = lastNotifiedState;
+        lastNotifiedState = targetState;
+        showStatusNotification(oldState, targetState);
+      }
+
       currentDeviceState = targetState;
       
       // 1. Update Global Header UI
