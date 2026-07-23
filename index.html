@@ -366,13 +366,13 @@
       <div id="nav-indicator"></div>
     </nav>
 
-    <!-- Theme Switcher Segmented Control -->
+    <!-- Theme Toggle Button -->
     <div class="flex items-center gap-4">
-      <div class="flex items-center p-1 rounded-lg border border-bordercol/80 bg-background/80 backdrop-blur-sm shadow-inner gap-1">
-        <button onclick="setTheme('dark')" id="theme-dark" class="theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 text-muted hover:text-text">OBSIDIAN</button>
-        <button onclick="setTheme('light')" id="theme-light" class="theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 text-muted hover:text-text">LIGHT</button>
-        <button onclick="setTheme('solarized')" id="theme-solarized" class="theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 text-muted hover:text-text">SOLARIZED</button>
-      </div>
+      <button onclick="toggleTheme()" id="theme-toggle-btn" title="Click to cycle theme (Obsidian / Light / Solarized)" class="flex items-center gap-2 px-3 py-1.5 text-xs font-mono-data rounded-lg border border-bordercol/80 bg-background/80 hover:bg-bordercol/40 text-text transition-all duration-200 shadow-sm backdrop-blur-sm group cursor-pointer">
+        <span class="text-[10px] text-muted font-bold tracking-wider">THEME:</span>
+        <i id="theme-toggle-icon" data-lucide="moon" class="w-3.5 h-3.5 text-primary group-hover:rotate-12 transition-transform"></i>
+        <span id="theme-toggle-label" class="font-bold text-primary tracking-wide">OBSIDIAN</span>
+      </button>
     </div>
   </header>
 
@@ -793,22 +793,40 @@
       triggerRedraws();
     }
 
-    // Theme Configurer
+    // Theme Configurer & Toggle System
+    const themes = ['dark', 'light', 'solarized'];
+    const themeConfig = {
+      'dark': { label: 'OBSIDIAN', icon: 'moon' },
+      'light': { label: 'LIGHT', icon: 'sun' },
+      'solarized': { label: 'SOLARIZED', icon: 'palette' }
+    };
+
     function setTheme(theme) {
+      if (!themes.includes(theme)) theme = 'dark';
       currentTheme = theme;
       document.documentElement.setAttribute('data-theme', theme);
       
-      document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.className = 'theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 text-muted hover:text-text hover:bg-bordercol/30 border border-transparent';
-      });
+      const themeLabel = document.getElementById('theme-toggle-label');
+      const themeIcon = document.getElementById('theme-toggle-icon');
       
-      const activeBtn = document.getElementById('theme-' + theme);
-      if (activeBtn) {
-        activeBtn.className = 'theme-btn px-3 py-1 text-xs font-mono-data rounded-md transition-all duration-200 bg-primary/20 text-primary border border-primary/40 font-bold shadow-[0_0_10px_rgba(0,229,255,0.2)]';
+      if (themeLabel && themeConfig[theme]) {
+        themeLabel.textContent = themeConfig[theme].label;
+      }
+      if (themeIcon && themeConfig[theme]) {
+        themeIcon.setAttribute('data-lucide', themeConfig[theme].icon);
+        if (window.lucide) {
+          lucide.createIcons();
+        }
       }
       
       // Redraw charts with new theme colors
       triggerRedraws();
+    }
+
+    function toggleTheme() {
+      const currentIndex = themes.indexOf(currentTheme);
+      const nextIndex = (currentIndex + 1) % themes.length;
+      setTheme(themes[nextIndex]);
     }
 
     // Top-Right Toast Notification System for API Status Transitions
