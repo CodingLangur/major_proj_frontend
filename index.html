@@ -329,10 +329,7 @@
   <!-- Global Header -->
   <header class="h-20 border-b border-bordercol bg-surface flex items-center justify-between px-6 z-10 shrink-0">
     <div class="flex items-center gap-4">
-      <div class="relative flex items-center justify-center h-6 w-6">
-        <span class="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-acid opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-acid"></span>
-      </div>
+      <img src="logo.jpeg" alt="Zero-Trust Cortex Logo" class="h-9 w-9 object-contain rounded-lg shadow-sm border border-primary/30 shrink-0">
       <h1 class="text-sm font-extrabold tracking-wider leading-tight font-mono-data text-text flex flex-col justify-center">
         <span class="whitespace-nowrap">ZERO-TRUST</span>
         <span class="text-primary whitespace-nowrap">CORTEX</span>
@@ -2111,7 +2108,7 @@
 
       const width = container.clientWidth;
       const height = container.clientHeight;
-      const margin = { top: 15, right: 15, bottom: 25, left: 55 };
+      const margin = { top: 20, right: 20, bottom: 25, left: 65 };
 
       const svg = d3.select("#" + containerId).append("svg").attr("width", width).attr("height", height);
       const chartWidth = width - margin.left - margin.right;
@@ -2132,9 +2129,18 @@
         return;
       }
 
+      let [tMin, tMax] = d3.extent(data, d => d.time);
+      if (!tMin || !tMax || tMax.getTime() === tMin.getTime()) {
+        const t = tMin ? tMin.getTime() : Date.now();
+        tMin = new Date(t - 15000);
+        tMax = new Date(t + 15000);
+      } else if (tMax.getTime() - tMin.getTime() < 10000) {
+        tMax = new Date(tMin.getTime() + 10000);
+      }
+
       const x = d3.scaleTime()
-        .domain(d3.extent(data, d => d.time))
-        .range([0, chartWidth]);
+        .domain([tMin, tMax])
+        .range([15, chartWidth - 10]);
 
       const y = d3.scaleLinear()
         .domain([0.7, 3.3])
@@ -2142,7 +2148,7 @@
 
       g.append("g")
         .attr("stroke", getThemeColor('--color-border'))
-        .attr("stroke-opacity", 0.1)
+        .attr("stroke-opacity", 0.15)
         .call(d3.axisLeft(y).tickValues([1, 2, 3]).tickSize(-chartWidth).tickFormat(""));
 
       const line = d3.line()
@@ -2154,15 +2160,24 @@
         .datum(data)
         .attr("fill", "none")
         .attr("stroke", getThemeColor('--color-border'))
-        .attr("stroke-opacity", 0.4)
+        .attr("stroke-opacity", 0.5)
         .attr("stroke-width", 1.5)
         .attr("d", line);
 
+      const visibleDots = [];
+      let lastX = -999;
+      data.forEach(d => {
+        const cx = x(d.time);
+        if (cx - lastX >= 10 || d === data[data.length - 1]) {
+          visibleDots.push(d);
+          lastX = cx;
+        }
+      });
+
       g.selectAll(".dot")
-        .data(data)
+        .data(visibleDots)
         .enter()
         .append("circle")
-        .attr("class", "dot")
         .attr("cx", d => x(d.time))
         .attr("cy", d => y(d.value))
         .attr("r", 3.5)
@@ -2181,6 +2196,7 @@
 
       const yAxis = d3.axisLeft(y)
         .tickValues([1, 2, 3])
+        .tickPadding(12)
         .tickFormat(d => {
           if (d === 3) return "ALLOW";
           if (d === 2) return "VERIFY";
@@ -2190,7 +2206,7 @@
 
       const yAxisG = g.append("g")
         .attr("font-family", getThemeColor('--font-mono') || 'monospace')
-        .attr("font-size", "8px")
+        .attr("font-size", "9px")
         .attr("color", getThemeColor('--color-muted'))
         .call(yAxis);
 
