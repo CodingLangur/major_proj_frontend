@@ -327,23 +327,23 @@
   <div id="status-notification-toast-container" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2.5 max-w-xs sm:max-w-sm w-full pointer-events-none"></div>
 
   <!-- Global Header -->
-  <header class="h-16 border-b border-bordercol bg-surface flex items-center justify-between px-6 z-10 shrink-0">
-    <div class="flex items-center gap-3">
-      <div class="relative flex items-center justify-center h-5 w-5">
-        <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-acid opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-2 w-2 bg-acid"></span>
+  <header class="h-20 border-b border-bordercol bg-surface flex items-center justify-between px-6 z-10 shrink-0">
+    <div class="flex items-center gap-4">
+      <div class="relative flex items-center justify-center h-6 w-6">
+        <span class="animate-ping absolute inline-flex h-4 w-4 rounded-full bg-acid opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-acid"></span>
       </div>
-      <h1 class="text-xs font-bold tracking-wider leading-tight font-mono-data text-text flex flex-col justify-center">
+      <h1 class="text-sm font-extrabold tracking-wider leading-tight font-mono-data text-text flex flex-col justify-center">
         <span class="whitespace-nowrap">ZERO-TRUST</span>
         <span class="text-primary whitespace-nowrap">CORTEX</span>
       </h1>
-      <span class="text-xs bg-bordercol border border-bordercol px-2 py-0.5 font-mono-data text-muted mt-0.5">V1.0.4-BETA</span>
+      <span class="text-xs bg-bordercol border border-bordercol px-2.5 py-1 font-mono-data text-muted font-semibold mt-0.5">V1.0.4-BETA</span>
       
       <!-- Device Status Indicator Pill -->
-      <div id="header-device-status-container" class="flex items-center gap-2 ml-3 px-3 py-1 rounded-full border border-allow/30 bg-surface/80 shadow-[0_0_12px_rgba(0,255,136,0.15)] transition-all duration-300">
-        <div class="relative flex items-center justify-center h-3 w-3">
-          <span id="header-status-ping" class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-allow opacity-75 glow-status-allow"></span>
-          <span id="header-status-dot" class="relative inline-flex rounded-full h-2 w-2 dot-pulse-green bg-allow"></span>
+      <div id="header-device-status-container" class="flex items-center gap-2.5 ml-2 px-3.5 py-1.5 rounded-full border border-allow/30 bg-surface/80 shadow-[0_0_12px_rgba(0,255,136,0.15)] transition-all duration-300">
+        <div class="relative flex items-center justify-center h-3.5 w-3.5">
+          <span id="header-status-ping" class="animate-ping absolute inline-flex h-3.5 w-3.5 rounded-full bg-allow opacity-75 glow-status-allow"></span>
+          <span id="header-status-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 dot-pulse-green bg-allow"></span>
         </div>
         <span class="text-xs font-mono-data font-semibold tracking-wide text-muted/90 uppercase">DEVICE STATE:</span>
         <span id="header-status-text" class="text-xs font-mono-data font-bold tracking-wider text-allow glow-status-allow uppercase">ACTIVE</span>
@@ -352,26 +352,26 @@
 
     <!-- Navigation Tabs -->
     <nav id="nav-container" class="relative flex h-full items-center gap-8">
-      <button onclick="switchTab('overwatch')" id="tab-overwatch" class="tab-btn active h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
-        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> OVERWATCH CONSOLE
+      <button onclick="switchTab('overwatch')" id="tab-overwatch" class="tab-btn active h-full px-2 font-mono-data text-[15px] font-bold tracking-wide text-muted hover:text-text flex items-center gap-2">
+        <i data-lucide="layout-dashboard" class="w-4.5 h-4.5"></i> OVERWATCH CONSOLE
       </button>
-      <button onclick="switchTab('matrix')" id="tab-matrix" class="tab-btn h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
-        <i data-lucide="activity" class="w-4 h-4"></i> NEURAL TRUST MATRIX
+      <button onclick="switchTab('matrix')" id="tab-matrix" class="tab-btn h-full px-2 font-mono-data text-[15px] font-bold tracking-wide text-muted hover:text-text flex items-center gap-2">
+        <i data-lucide="activity" class="w-4.5 h-4.5"></i> NEURAL TRUST MATRIX
       </button>
-      <button onclick="switchTab('zta')" id="tab-zta" class="tab-btn h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
-        <i data-lucide="git-branch" class="w-4 h-4"></i> ZTA DECISION FLOW
+      <button onclick="switchTab('zta')" id="tab-zta" class="tab-btn h-full px-2 font-mono-data text-[15px] font-bold tracking-wide text-muted hover:text-text flex items-center gap-2">
+        <i data-lucide="git-branch" class="w-4.5 h-4.5"></i> ZTA DECISION FLOW
       </button>
-      <button onclick="switchTab('telemetry')" id="tab-telemetry" class="tab-btn h-full px-2 font-mono-data text-sm font-semibold tracking-wide text-muted hover:text-text flex items-center gap-2">
-        <i data-lucide="terminal" class="w-4 h-4"></i> TELEMETRY STREAM
+      <button onclick="switchTab('telemetry')" id="tab-telemetry" class="tab-btn h-full px-2 font-mono-data text-[15px] font-bold tracking-wide text-muted hover:text-text flex items-center gap-2">
+        <i data-lucide="terminal" class="w-4.5 h-4.5"></i> TELEMETRY STREAM
       </button>
       <div id="nav-indicator"></div>
     </nav>
 
     <!-- Theme Toggle Button -->
     <div class="flex items-center gap-4">
-      <button onclick="toggleTheme()" id="theme-toggle-btn" title="Click to cycle theme (Obsidian / Light / Solarized)" class="flex items-center gap-2 px-3 py-1.5 text-xs font-mono-data rounded-lg border border-bordercol/80 bg-background/80 hover:bg-bordercol/40 text-text transition-all duration-200 shadow-sm backdrop-blur-sm group cursor-pointer">
-        <span class="text-[10px] text-muted font-bold tracking-wider">THEME:</span>
-        <i id="theme-toggle-icon" data-lucide="moon" class="w-3.5 h-3.5 text-primary group-hover:rotate-12 transition-transform"></i>
+      <button onclick="toggleTheme()" id="theme-toggle-btn" title="Click to cycle theme (Obsidian / Light / Solarized)" class="flex items-center gap-2 px-3.5 py-2 text-sm font-mono-data rounded-lg border border-bordercol/80 bg-background/80 hover:bg-bordercol/40 text-text transition-all duration-200 shadow-sm backdrop-blur-sm group cursor-pointer">
+        <span class="text-xs text-muted font-bold tracking-wider">THEME:</span>
+        <i id="theme-toggle-icon" data-lucide="moon" class="w-4 h-4 text-primary group-hover:rotate-12 transition-transform"></i>
         <span id="theme-toggle-label" class="font-bold text-primary tracking-wide">OBSIDIAN</span>
       </button>
     </div>
