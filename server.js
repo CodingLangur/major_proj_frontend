@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
@@ -8,15 +9,14 @@ const { GoogleGenAI } = require('@google/genai');
 
 const PORT = process.env.PORT || 8080;
 const API_BASE = process.env.API_BASE || 'http://20.119.77.54:9000';
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-if (!GEMINI_API_KEY) {
-  console.warn('WARNING: GEMINI_API_KEY is not set in environment or .env file!');
+function getGeminiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({ apiKey });
 }
 
-const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
-
-const server = http.createServer((req, res) => {
+const requestHandler = (req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -45,9 +45,10 @@ const server = http.createServer((req, res) => {
 
     req.on('end', async () => {
       try {
+        const ai = getGeminiClient();
         if (!ai) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'GEMINI_API_KEY is missing on server. Check .env file.' }));
+          res.end(JSON.stringify({ error: 'GEMINI_API_KEY is missing on server. Check environment variables.' }));
           return;
         }
         const payload = JSON.parse(body || '{}');
@@ -78,8 +79,9 @@ ${JSON.stringify(payload, null, 2)}`;
   // Check if it's an API request to proxy to external backend
   if (cleanUrl.startsWith('/api/')) {
     const targetUrl = API_BASE + req.url;
+    const client = targetUrl.startsWith('https:') ? https : http;
     
-    http.get(targetUrl, (apiRes) => {
+    client.get(targetUrl, (apiRes) => {
       res.writeHead(apiRes.statusCode, {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
@@ -107,6 +109,7 @@ ${JSON.stringify(payload, null, 2)}`;
   if (ext === '.js') contentType = 'text/javascript';
   else if (ext === '.css') contentType = 'text/css';
   else if (ext === '.png') contentType = 'image/png';
+  else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
   else if (ext === '.json') contentType = 'application/json';
 
   fs.readFile(filePath, (err, content) => {
@@ -128,9 +131,14 @@ ${JSON.stringify(payload, null, 2)}`;
       res.end(content, 'utf-8');
     }
   });
-});
+};
 
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
-  console.log(`Proxying /api/* to ${API_BASE}/api/*`);
-});
+module.exports = requestHandler;
+
+if (require.main === module) {
+  const server = http.createServer(requestHandler);
+  server.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}/`);
+    console.log(`Proxying /api/* to ${API_BASE}/api/*`);
+  });
+}
