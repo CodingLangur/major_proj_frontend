@@ -475,9 +475,13 @@
               <span class="text-[9px] text-primary font-bold">MANUAL TEST</span>
             </div>
             <div class="grid grid-cols-3 gap-1.5 mt-0.5">
-              <button onclick="simulateApiDecision('ALLOW')" class="px-2 py-1 text-[10px] font-bold border border-acid/40 bg-acid/10 text-acid hover:bg-acid/20 transition rounded-none">ALLOW</button>
-              <button onclick="simulateApiDecision('VERIFY')" class="px-2 py-1 text-[10px] font-bold border border-verify/40 bg-verify/10 text-verify hover:bg-verify/20 transition rounded-none">VERIFY</button>
-              <button onclick="simulateApiDecision('BLOCK')" class="px-2 py-1 text-[10px] font-bold border border-blocked/40 bg-blocked/10 text-blocked hover:bg-blocked/20 transition rounded-none">BLOCK</button>
+              <button onclick="simulateApiDecision('ALLOW')" class="px-2 py-1 text-[10px] font-bold border border-acid/40 bg-acid/10 text-acid hover:bg-acid/20 transition rounded-none cursor-pointer">ALLOW</button>
+              <button onclick="simulateApiDecision('VERIFY')" class="px-2 py-1 text-[10px] font-bold border border-verify/40 bg-verify/10 text-verify hover:bg-verify/20 transition rounded-none cursor-pointer">VERIFY</button>
+              <button onclick="simulateApiDecision('BLOCK')" class="px-2 py-1 text-[10px] font-bold border border-blocked/40 bg-blocked/10 text-blocked hover:bg-blocked/20 transition rounded-none cursor-pointer">BLOCK</button>
+              <button onclick="showGeminiSummaryModal('Current Live Telemetry Summary', getLatestTelemetryPayload())" class="col-span-3 mt-1.5 px-2 py-1 text-[10px] font-bold border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition rounded-none flex items-center justify-center gap-1.5 cursor-pointer">
+                <i data-lucide="sparkles" class="w-3 h-3 text-primary animate-pulse"></i>
+                SUMMARIZE WITH GEMINI AI
+              </button>
             </div>
           </div>
 
@@ -1235,7 +1239,7 @@
       lucide.createIcons();
     }
 
-    // Toggle log details modal/container
+    // Toggle log details modal/container with Gemini Telemetry Summarization
     function expandLog(element, payloadJson) {
       // check if details are already expanded
       const nextSibling = element.nextElementSibling;
@@ -1249,10 +1253,159 @@
       parent.querySelectorAll('.log-details-block').forEach(b => b.remove());
 
       const detailsDiv = document.createElement('div');
-      detailsDiv.className = "log-details-block bg-background/80 border-l-2 border-primary p-2 mt-1 font-mono-data text-[10px] text-text shrink-0 leading-relaxed overflow-x-auto";
-      detailsDiv.innerHTML = `<pre class="text-xs text-primary/90">${JSON.stringify(payloadJson, null, 2)}</pre>`;
+      detailsDiv.className = "log-details-block bg-background/90 border-l-2 border-primary p-3 mt-1.5 font-mono-data text-[11px] text-text shrink-0 leading-relaxed rounded-r-sm space-y-2.5 shadow-lg";
+
+      const uniqueId = 'gemini-sum-' + Math.random().toString(36).substring(2, 9);
+
+      detailsDiv.innerHTML = `
+        <div class="bg-surface/80 border border-primary/30 p-2.5 rounded text-xs">
+          <div class="flex items-center justify-between border-b border-primary/20 pb-1.5 mb-2">
+            <span class="text-primary font-bold flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-primary animate-pulse"></i>
+              Gemini Telemetry Summary
+            </span>
+            <span class="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono-data font-bold">AI INSIGHT</span>
+          </div>
+          <div id="${uniqueId}" class="text-text/90 leading-relaxed text-[11px] min-h-[30px] flex items-center">
+            <span class="text-muted flex items-center gap-2 animate-pulse">
+              <i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin text-primary"></i>
+              Analyzing telemetry metrics with Gemini AI...
+            </span>
+          </div>
+        </div>
+        <div class="bg-black/40 border border-bordercol/40 p-2 rounded max-h-48 overflow-y-auto">
+          <div class="text-[10px] text-muted mb-1 font-bold uppercase tracking-wider">Raw Telemetry JSON</div>
+          <pre class="text-[11px] text-primary/90 select-all font-mono-data leading-tight">${JSON.stringify(payloadJson, null, 2)}</pre>
+        </div>
+      `;
+
       element.after(detailsDiv);
+      if (window.lucide) lucide.createIcons();
+
+      // Async fetch Gemini summary
+      fetch('/api/summarize-telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadJson)
+      })
+      .then(res => {
+        if (!res.ok) throw new Error(`Server status ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        const summaryContainer = document.getElementById(uniqueId);
+        if (!summaryContainer) return;
+        if (data.summary) {
+          summaryContainer.innerHTML = `<p class="text-text leading-relaxed font-sans text-xs">${data.summary}</p>`;
+        } else if (data.error) {
+          summaryContainer.innerHTML = `<span class="text-alert text-xs flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Summary failed: ${data.error}</span>`;
+          if (window.lucide) lucide.createIcons();
+        }
+      })
+      .catch(err => {
+        const summaryContainer = document.getElementById(uniqueId);
+        if (summaryContainer) {
+          summaryContainer.innerHTML = `<span class="text-alert text-xs flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Summary error: ${err.message}</span>`;
+          if (window.lucide) lucide.createIcons();
+        }
+      });
     }
+
+    // Modal drawer for Gemini Telemetry Summarization across all panels (Overwatch, Matrix, ZTA)
+    function showGeminiSummaryModal(title, payloadJson) {
+      const oldModal = document.getElementById('gemini-summary-modal');
+      if (oldModal) oldModal.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'gemini-summary-modal';
+      modal.className = "fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-150";
+
+      const uniqueId = 'modal-gemini-sum-' + Math.random().toString(36).substring(2, 9);
+
+      modal.innerHTML = `
+        <div class="bg-surface border border-primary/40 rounded-md max-w-lg w-full p-5 shadow-[0_0_35px_rgba(0,229,255,0.25)] font-mono-data text-text space-y-4 relative">
+          <div class="flex items-center justify-between border-b border-bordercol/60 pb-3">
+            <div class="flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-4 h-4 text-primary animate-pulse"></i>
+              <span class="font-bold text-xs text-primary uppercase tracking-wider">${title || 'GEMINI TELEMETRY SUMMARY'}</span>
+            </div>
+            <button onclick="document.getElementById('gemini-summary-modal').remove()" class="text-muted hover:text-text p-1 transition cursor-pointer">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div class="bg-background/90 border border-primary/30 p-3 rounded text-xs space-y-2">
+            <div class="flex items-center justify-between border-b border-primary/10 pb-1.5 mb-1">
+              <span class="text-primary font-bold text-[10px] uppercase tracking-wider">AI INSIGHT & ANALYSIS</span>
+              <span class="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold">GEMINI 2.5 FLASH</span>
+            </div>
+            <div id="${uniqueId}" class="text-text/90 leading-relaxed text-[11px] min-h-[40px] flex items-center">
+              <span class="text-muted flex items-center gap-2 animate-pulse font-mono-data">
+                <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-primary"></i>
+                Analyzing telemetry metrics with Gemini AI...
+              </span>
+            </div>
+          </div>
+
+          <div class="bg-black/50 border border-bordercol/40 p-2.5 rounded max-h-44 overflow-y-auto">
+            <div class="text-[10px] text-muted mb-1 font-bold uppercase tracking-wider">Associated Telemetry JSON</div>
+            <pre class="text-[11px] text-primary/90 select-all font-mono-data leading-tight">${JSON.stringify(payloadJson, null, 2)}</pre>
+          </div>
+
+          <div class="flex justify-end pt-1">
+            <button onclick="document.getElementById('gemini-summary-modal').remove()" class="px-4 py-1.5 text-xs font-bold border border-bordercol bg-surface hover:border-primary transition text-text rounded-[3px] cursor-pointer">
+              CLOSE
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      if (window.lucide) lucide.createIcons();
+
+      fetch('/api/summarize-telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadJson)
+      })
+      .then(res => {
+        if (!res.ok) throw new Error(`Server status ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        const summaryContainer = document.getElementById(uniqueId);
+        if (!summaryContainer) return;
+        if (data.summary) {
+          summaryContainer.innerHTML = `<p class="text-text leading-relaxed font-sans text-xs">${data.summary}</p>`;
+        } else if (data.error) {
+          summaryContainer.innerHTML = `<span class="text-alert text-xs flex items-center gap-1"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Analysis failed: ${data.error}</span>`;
+          if (window.lucide) lucide.createIcons();
+        }
+      })
+      .catch(err => {
+        const summaryContainer = document.getElementById(uniqueId);
+        if (summaryContainer) {
+          summaryContainer.innerHTML = `<span class="text-alert text-xs flex items-center gap-1"><i data-lucide="alert-triangle" class="w-4 h-4"></i> Summary error: ${err.message}</span>`;
+          if (window.lucide) lucide.createIcons();
+        }
+      });
+    }
+
+    function getLatestTelemetryPayload() {
+      const last = (telemetryHistory && telemetryHistory.length > 0) ? telemetryHistory[telemetryHistory.length - 1] : {};
+      return {
+        device_id: "esp32-001",
+        timestamp: (last.time instanceof Date) ? last.time.toISOString() : new Date().toISOString(),
+        trust_after: parseFloat(((last.trustScore || 85) / 100).toFixed(4)),
+        anomaly_score: parseFloat(((last.anomalyScore || 12) / 100).toFixed(4)),
+        ema_anomaly: parseFloat(((last.ema || 10) / 100).toFixed(4)),
+        slow_burn_score: parseFloat((last.slowBurn || 1.5).toFixed(2)),
+        decision: lastApiDecision || ((last.trustScore < 50) ? 'BLOCK' : ((last.trustScore < 80) ? 'VERIFY' : 'ALLOW'))
+      };
+    }
+
+    window.showGeminiSummaryModal = showGeminiSummaryModal;
+    window.getLatestTelemetryPayload = getLatestTelemetryPayload;
 
     // Format timestamp from API (ISO format, e.g. 2026-07-18T11:48:40.265261)
     function formatApiTime(timestampStr) {
@@ -1902,7 +2055,24 @@
           focus.style("display", "none");
           d3.select("#d3-tooltip").style("opacity", 0);
         })
-        .on("mousemove", mousemove);
+        .on("mousemove", mousemove)
+        .on("click", (event) => {
+          const x0 = x.invert(d3.pointer(event)[0]);
+          const i = bisectDate(data, x0, 1);
+          const d0 = data[i - 1];
+          const d1 = data[i];
+          if (!d0 && !d1) return;
+          const d = (!d0) ? d1 : ((!d1) ? d0 : (x0 - d0.time > d1.time - x0 ? d1 : d0));
+          showGeminiSummaryModal("Trust Calibration Telemetry", {
+            device_id: "esp32-001",
+            timestamp: (d.time instanceof Date) ? d.time.toISOString() : d.time,
+            trust_after: parseFloat((d.trustScore / 100).toFixed(4)),
+            anomaly_score: parseFloat(((d.anomalyScore || 5) / 100).toFixed(4)),
+            ema_anomaly: parseFloat(((d.ema || 5) / 100).toFixed(4)),
+            slow_burn_score: parseFloat((d.slowBurn || 1.0).toFixed(2)),
+            decision: d.trustScore < 50 ? "BLOCK" : (d.trustScore < 80 ? "VERIFY" : "ALLOW")
+          });
+        });
 
       const bisectDate = d3.bisector(d => d.time).left;
 
@@ -2012,9 +2182,40 @@
         .append("circle")
         .attr("cx", d => x(d.time))
         .attr("cy", d => y(d.anomalyScore))
-        .attr("r", 4)
+        .attr("r", 5)
         .attr("fill", getThemeColor('--color-alert'))
-        .attr("class", "glow-alert");
+        .attr("class", "glow-alert cursor-pointer")
+        .on("click", (event, d) => {
+          event.stopPropagation();
+          showGeminiSummaryModal("Anomaly Threshold Breach", {
+            device_id: "esp32-001",
+            timestamp: (d.time instanceof Date) ? d.time.toISOString() : d.time,
+            trust_after: parseFloat(((d.trustScore || 40) / 100).toFixed(4)),
+            anomaly_score: parseFloat((d.anomalyScore / 100).toFixed(4)),
+            ema_anomaly: parseFloat(((d.ema || 15) / 100).toFixed(4)),
+            slow_burn_score: parseFloat((d.slowBurn || 2.2).toFixed(2)),
+            decision: "BLOCK"
+          });
+        });
+
+      // SVG click handler for general point telemetry analysis
+      svg.style("cursor", "pointer").on("click", (event) => {
+        const pointer = d3.pointer(event);
+        const x0 = x.invert(pointer[0] - margin.left);
+        const bisectDate = d3.bisector(d => d.time).left;
+        const i = bisectDate(telemetryHistory, x0, 1);
+        const d = telemetryHistory[i] || telemetryHistory[telemetryHistory.length - 1];
+        if (!d) return;
+        showGeminiSummaryModal("Anomaly Coefficient Telemetry", {
+          device_id: "esp32-001",
+          timestamp: (d.time instanceof Date) ? d.time.toISOString() : d.time,
+          trust_after: parseFloat(((d.trustScore || 80) / 100).toFixed(4)),
+          anomaly_score: parseFloat((d.anomalyScore / 100).toFixed(4)),
+          ema_anomaly: parseFloat(((d.ema || 10) / 100).toFixed(4)),
+          slow_burn_score: parseFloat((d.slowBurn || 1.2).toFixed(2)),
+          decision: d.anomalyScore > anomalyThreshold ? "BLOCK" : "ALLOW"
+        });
+      });
 
       // Draw red/orange dashed Threshold Line with ambient glow
       g.append("line")
@@ -2113,6 +2314,24 @@
       // Axes
       g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", "#8a99a8").call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
       g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", "#8a99a8").call(d3.axisLeft(y).tickValues([0, 2, 4, 6, 8, 10]));
+
+      svg.style("cursor", "pointer").on("click", (event) => {
+        const pointer = d3.pointer(event);
+        const x0 = x.invert(pointer[0] - margin.left);
+        const bisectDate = d3.bisector(d => d.time).left;
+        const i = bisectDate(data, x0, 1);
+        const d = data[i] || data[data.length - 1];
+        if (!d) return;
+        showGeminiSummaryModal("Threat Correlation & EMA Telemetry", {
+          device_id: "esp32-001",
+          timestamp: (d.time instanceof Date) ? d.time.toISOString() : d.time,
+          trust_after: parseFloat(((d.trustScore || 85) / 100).toFixed(4)),
+          anomaly_score: parseFloat(((d.anomalyScore || 10) / 100).toFixed(4)),
+          ema_anomaly: parseFloat(((d.ema || 8) / 100).toFixed(4)),
+          slow_burn_score: parseFloat((d.slowBurn || 1.2).toFixed(2)),
+          decision: (d.anomalyScore || 10) > anomalyThreshold ? "BLOCK" : "ALLOW"
+        });
+      });
     }
 
     // D3 Slow-burn Step Chart (Matrix view bottom-right)
@@ -2166,6 +2385,24 @@
       // Axes
       g.append("g").attr("transform", `translate(0,${chartHeight})`).attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", "#8a99a8").call(d3.axisBottom(x).ticks(4).tickFormat(d3.timeFormat("%H:%M:%S")));
       g.append("g").attr("font-family", getThemeColor('--font-mono')).attr("font-size", "9px").attr("color", "#8a99a8").call(d3.axisLeft(y).tickValues([0, 1, 2, 3]));
+
+      svg.style("cursor", "pointer").on("click", (event) => {
+        const pointer = d3.pointer(event);
+        const x0 = x.invert(pointer[0] - margin.left);
+        const bisectDate = d3.bisector(d => d.time).left;
+        const i = bisectDate(data, x0, 1);
+        const d = data[i] || data[data.length - 1];
+        if (!d) return;
+        showGeminiSummaryModal("Slow-Burn Threat Score Telemetry", {
+          device_id: "esp32-001",
+          timestamp: (d.time instanceof Date) ? d.time.toISOString() : d.time,
+          trust_after: parseFloat(((d.trustScore || 80) / 100).toFixed(4)),
+          anomaly_score: parseFloat(((d.anomalyScore || 10) / 100).toFixed(4)),
+          ema_anomaly: parseFloat(((d.ema || 8) / 100).toFixed(4)),
+          slow_burn_score: parseFloat((d.slowBurn || 2.1).toFixed(2)),
+          decision: (d.slowBurn > 3.0) ? "BLOCK" : ((d.slowBurn > 1.8) ? "VERIFY" : "ALLOW")
+        });
+      });
     }
 
     // D3 Zero Trust Decision Flow Timeline Chart
@@ -2434,6 +2671,21 @@
           d3.selectAll("path").style("opacity", null);
           d3.select(this).attr("stroke-width", d => Math.max(2, Math.min(15, d.value / 25)));
           d3.select("#d3-tooltip").style("opacity", 0);
+        })
+        .on("click", function(event, d) {
+          event.stopPropagation();
+          const decision = (d.status === 'blocked') ? 'BLOCK' : ((d.status === 'verify') ? 'VERIFY' : 'ALLOW');
+          showGeminiSummaryModal("ZTA Decision Flow Telemetry Link", {
+            device_id: "esp32-001",
+            timestamp: new Date().toISOString(),
+            source_ip: d.srcIp || "192.168.1.10",
+            payload_size: d.size || "4.2 KB",
+            trust_after: decision === 'BLOCK' ? 0.25 : (decision === 'VERIFY' ? 0.65 : 0.95),
+            anomaly_score: decision === 'BLOCK' ? 0.85 : (decision === 'VERIFY' ? 0.45 : 0.08),
+            ema_anomaly: 0.12,
+            slow_burn_score: decision === 'BLOCK' ? 3.5 : 1.1,
+            decision: decision
+          });
         });
 
       // Overlay animated moving dashes / light pulses along connection paths
