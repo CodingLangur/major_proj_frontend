@@ -1,5 +1,5 @@
 const requestHandler = require('../server.js');
 
-module.exports = (req, res) => {
-  return requestHandler(req, res);
+module.exports = async (req, res) => {
+  return await requestHandler(req, res);
 };

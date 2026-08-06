@@ -16,7 +16,43 @@ function getGeminiClient() {
   return new GoogleGenAI({ apiKey });
 }
 
-const requestHandler = (req, res) => {
+// Helper to parse request body safely across both standard Node HTTP and Vercel Serverless Functions
+function parseRequestBody(req) {
+  return new Promise((resolve) => {
+    if (req.body) {
+      if (typeof req.body === 'object') {
+        return resolve(req.body);
+      }
+      try {
+        return resolve(JSON.parse(req.body));
+      } catch (_) {
+        return resolve({});
+      }
+    }
+
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk;
+    });
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body || '{}'));
+      } catch (_) {
+        resolve({});
+      }
+    });
+
+    if (req.readableEnded) {
+      try {
+        resolve(JSON.parse(body || '{}'));
+      } catch (_) {
+        resolve({});
+      }
+    }
+  });
+}
+
+const requestHandler = async (req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -38,21 +74,16 @@ const requestHandler = (req, res) => {
       return;
     }
 
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk;
-    });
+    try {
+      const ai = getGeminiClient();
+      if (!ai) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'GEMINI_API_KEY is missing on server. Check environment variables in Vercel or .env file.' }));
+        return;
+      }
 
-    req.on('end', async () => {
-      try {
-        const ai = getGeminiClient();
-        if (!ai) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'GEMINI_API_KEY is missing on server. Check environment variables.' }));
-          return;
-        }
-        const payload = JSON.parse(body || '{}');
-        const prompt = `You are a cybersecurity expert embedded in a Zero Trust Architecture (ZTA) Security Operations Center (SOC) dashboard.
+      const payload = await parseRequestBody(req);
+      const prompt = `You are a cybersecurity expert embedded in a Zero Trust Architecture (ZTA) Security Operations Center (SOC) dashboard.
 Analyze the following telemetry JSON log and provide a concise, natural language summary (2 to 3 sentences maximum).
 Explain what happened, key metrics (such as device ID, trust score, anomaly score, slow burn score), and why the policy decision (ALLOW, VERIFY, BLOCK) was taken or recommended.
 Keep the tone professional, direct, and actionable for security engineers.
@@ -60,19 +91,18 @@ Keep the tone professional, direct, and actionable for security engineers.
 Telemetry Log:
 ${JSON.stringify(payload, null, 2)}`;
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: prompt
-        });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt
+      });
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ summary: response.text }));
-      } catch (err) {
-        console.error('Error generating telemetry summary:', err);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Failed to generate telemetry summary', details: err.message }));
-      }
-    });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ summary: response.text }));
+    } catch (err) {
+      console.error('Error generating telemetry summary:', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to generate telemetry summary', details: err.message }));
+    }
     return;
   }
 
